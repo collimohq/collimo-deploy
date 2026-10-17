@@ -1,0 +1,52 @@
+name: Something's wrong
+description: Ferrule shows something wrong, misses something, or won't start.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting it. **A screenshot is the most useful thing you can add**:
+        drag it into the box below. It often answers in seconds what words can't.
+  - type: input
+    id: version
+    attributes:
+      label: Ferrule version
+      description: Shown at the bottom of every page, such as 0.9.0 or qa-6d7e718.
+      placeholder: qa-6d7e718
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot
+      description: Drag an image here. Blur anything private, such as public IP addresses or names.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to see it
+      description: What you did just before, if it matters. "It was just like that" is a fine answer.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log lines
+      description: |
+        Anything from the ferrule container's log around that time: in Portainer under the
+        container, or `docker compose logs ferrule`. Ferrule never logs passwords or keys.
+      render: text
+  - type: dropdown
+    id: install
+    attributes:
+      label: How do you run it?
+      options:
+        - Portainer
+        - Docker Compose
+        - Something else

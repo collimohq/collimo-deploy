@@ -1,0 +1,26 @@
+name: I'd like Ferrule to…
+description: Something new to watch, show or do.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: What are you trying to do?
+      description: The problem, more than the solution. "I want to know when my UPS is on battery" helps more than "add SNMP".
+    validations:
+      required: true
+  - type: textarea
+    id: hardware
+    attributes:
+      label: Which hardware or software?
+      description: Makes, models and versions, such as "APC Smart-UPS 1500 with an AP9640 card" or "Cisco Catalyst 9300, IOS-XE 17.9".
+  - type: textarea
+    id: example
+    attributes:
+      label: Screenshot or example
+      description: A screenshot of where you see it today, in the device's own interface or another tool. Drag an image here.
+  - type: textarea
+    id: why
+    attributes:
+      label: How much does it matter?
+      description: Nice to have, or would it change whether you'd use Ferrule?

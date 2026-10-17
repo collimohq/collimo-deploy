@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://docs.ferrulehq.dev
+    about: How to install, connect your equipment, and fix common problems.
