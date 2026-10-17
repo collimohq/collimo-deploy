@@ -31,12 +31,12 @@ so nothing is built on your host.
    [Connect your gear](https://docs.ferrulehq.dev/connect/unifi-network/).
 2. **Get the stack:**
    - **Portainer:** Stacks → Add stack → name `ferrule` → **Repository**,
-     with URL `https://git.uglyhousesneedlove.com/steve/ferrule-deploy`,
+     with URL `https://github.com/ferrulehq/ferrule-deploy`,
      reference `refs/heads/main`, compose path `docker-compose.yml`, and
      authentication **off**.
    - **Docker Compose:**
      ```sh
-     git clone https://git.uglyhousesneedlove.com/steve/ferrule-deploy.git ferrule
+     git clone https://github.com/ferrulehq/ferrule-deploy.git ferrule
      cd ferrule
      cp stack.env.example .env
      ```

@@ -11,7 +11,7 @@ with a webhook.
   on your Docker host. Portainer reads only the compose file from the
   repository.
 - Portainer must reach
-  `https://git.uglyhousesneedlove.com/steve/ferrule-deploy`. It is public,
+  `https://github.com/ferrulehq/ferrule-deploy`. It is public,
   so no account or token is needed.
 - The Docker host needs outbound internet to pull the Ferrule and
   VictoriaMetrics images. A licensed install also fetches
@@ -50,9 +50,9 @@ console.
 ## Step 2 — The image
 
 The image is public: Portainer pulls it with no registry login. It holds
-the built binary only, never the source. Before launch it is published at
-`git.uglyhousesneedlove.com/steve/ferrule`; at launch it moves to Docker Hub,
-and `FERRULE_IMAGE` is the one line that changes.
+the built binary only, never the source. It is published on GitHub's
+container registry, `ghcr.io/ferrulehq/ferrule`. If it ever moves,
+`FERRULE_IMAGE` is the one line that changes.
 
 ---
 
@@ -65,7 +65,7 @@ and `FERRULE_IMAGE` is the one line that changes.
 3. Choose **Repository** as the build method.
 4. Fill in:
    - **Repository URL** —
-     `https://git.uglyhousesneedlove.com/steve/ferrule-deploy`
+     `https://github.com/ferrulehq/ferrule-deploy`
    - **Repository reference** — `refs/heads/main`
    - **Compose path** — `docker-compose.yml`
    - **Authentication** — off; the repository is public. Turn it on only
@@ -116,7 +116,7 @@ Add these only if you need them:
 | Name | Default | When to change it |
 |---|---|---|
 | `FERRULE_VERSION` | **required** | the release to run, such as `0.9.0`; `qa` for what is under test. Never `latest` |
-| `FERRULE_IMAGE` | `git.uglyhousesneedlove.com/steve/ferrule` | where the image is published; change it only if told to |
+| `FERRULE_IMAGE` | `ghcr.io/ferrulehq/ferrule` | where the image is published; change it only if told to |
 | `WEB_PORT` | `8090` | something else already has 8090 |
 | `UNIFI_ENABLED` | `true` | `false` to watch only hypervisors and storage, or to try this stack beside an existing one without polling the controller twice |
 | `SOURCE_1` … `SOURCE_8` | empty | a hypervisor or storage system per slot, see below |

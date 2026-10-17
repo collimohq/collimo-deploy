@@ -23,7 +23,7 @@ services:
     # version nobody chose, and never latest. FERRULE_IMAGE is the registry
     # path, one line to change when it moves. Its own container names keep
     # it apart from an earlier stack of this project on the same host.
-    image: ${FERRULE_IMAGE:-git.uglyhousesneedlove.com/steve/ferrule}:${FERRULE_VERSION:?set FERRULE_VERSION to the release to run, such as 0.9.0}
+    image: ${FERRULE_IMAGE:-ghcr.io/ferrulehq/ferrule}:${FERRULE_VERSION:?set FERRULE_VERSION to the release to run, such as 0.9.0}
     # Ask the registry on every deploy. A fixed release costs one quick
     # request; qa moves, and this is how a redeploy picks it up.
     pull_policy: always
@@ -230,7 +230,7 @@ services:
       # Stack environment can start from what is set. Never a secret.
       COMPOSE_PROFILES: ${COMPOSE_PROFILES:-}
       WEB_PORT: ${WEB_PORT:-8090}
-      FERRULE_IMAGE: ${FERRULE_IMAGE:-git.uglyhousesneedlove.com/steve/ferrule}
+      FERRULE_IMAGE: ${FERRULE_IMAGE:-ghcr.io/ferrulehq/ferrule}
       FERRULE_VERSION: ${FERRULE_VERSION:-}
       RETENTION: ${RETENTION:-13w}
       GOTIFY_ADMIN_USER: ${GOTIFY_ADMIN_USER:-admin}
