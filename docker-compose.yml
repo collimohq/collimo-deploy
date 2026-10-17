@@ -1,0 +1,431 @@
+# Single compose file for both paths.
+#
+# Ferrule runs from its published image, a built binary: no source reaches
+# the Docker host. FERRULE_VERSION picks the release and is required.
+# docker-compose.build.yml, added beside this file, builds from source
+# instead, for development.
+#
+# Portainer GitOps: Portainer reads this file from the repository. Stack
+# variables come from Portainer's Environment variables panel.
+#
+# Plain CLI: `docker compose up -d` reads the same variables out of a local
+# .env automatically — Compose interpolates ${VAR} from .env without needing
+# an `env_file:` key, which is why there isn't one. An `env_file:` would
+# break the Portainer path, since .env is deliberately not in the repo.
+#
+# There is no top-level `name:` — Portainer sets the compose project name
+# from the stack name, and a hardcoded one here would fight it.
+
+services:
+  telemetry:
+    # The published image, at the release FERRULE_VERSION names: 0.9.0, or
+    # qa for what is under test. Required, so a stack never drifts onto a
+    # version nobody chose, and never latest. FERRULE_IMAGE is the registry
+    # path, one line to change when it moves. Its own container names keep
+    # it apart from an earlier stack of this project on the same host.
+    image: ${FERRULE_IMAGE:-git.uglyhousesneedlove.com/steve/ferrule}:${FERRULE_VERSION:?set FERRULE_VERSION to the release to run, such as 0.9.0}
+    # Ask the registry on every deploy. A fixed release costs one quick
+    # request; qa moves, and this is how a redeploy picks it up.
+    pull_policy: always
+    container_name: ferrule
+    restart: unless-stopped
+    environment:
+      # false turns off Network, Protect, WAN and the probe, for a stack that
+      # watches only hypervisors and storage — or one tried out beside an
+      # existing stack, so the controller is not polled twice.
+      UNIFI_ENABLED: ${UNIFI_ENABLED:-true}
+      UNIFI_HOST: ${UNIFI_HOST:-}
+      UNIFI_API_KEY: ${UNIFI_API_KEY:-}
+      UNIFI_USERNAME: ${UNIFI_USERNAME:-}
+      UNIFI_PASSWORD: ${UNIFI_PASSWORD:-}
+      UNIFI_SITE: ${UNIFI_SITE:-default}
+      # Protect on separate hardware (a UNVR) needs its own host and its own
+      # credentials — the gateway's do not work on it. Leave these unset when
+      # one console runs both applications.
+      PROTECT_HOST: ${PROTECT_HOST:-}
+      PROTECT_API_KEY: ${PROTECT_API_KEY:-}
+      PROTECT_USERNAME: ${PROTECT_USERNAME:-}
+      PROTECT_PASSWORD: ${PROTECT_PASSWORD:-}
+      UNIFI_OS: ${UNIFI_OS:-true}
+      UNIFI_VERIFY_TLS: ${UNIFI_VERIFY_TLS:-false}
+      POLL_INTERVAL: ${POLL_INTERVAL:-30s}
+      REQUEST_TIMEOUT: ${REQUEST_TIMEOUT:-20s}
+      PROTECT_ENABLED: ${PROTECT_ENABLED:-true}
+      PROTECT_BOOTSTRAP: ${PROTECT_BOOTSTRAP:-true}
+      LISTEN_ADDR: ":8080"
+      METRICS_URL: "http://victoria-metrics:8428"
+      METRICS_PUSH: "true"
+
+      # WAN health and ISP accountability. The gateway WAN objects and the
+      # cable modem DOCSIS state ride along with the device poll and cost no
+      # extra requests; WAN_POLL_INTERVAL only paces the aggregated dashboard
+      # and stat/health.
+      WAN_ENABLED: ${WAN_ENABLED:-true}
+      WAN_POLL_INTERVAL: ${WAN_POLL_INTERVAL:-60s}
+      WAN_DASHBOARD_SCALE: ${WAN_DASHBOARD_SCALE:-24h}
+      SPEEDTEST_INTERVAL: ${SPEEDTEST_INTERVAL:-15m}
+      BACKFILL_ON_START: ${BACKFILL_ON_START:-true}
+
+      # The outage archive. Fixed path because it is a named volume, not a
+      # host path — Portainer stacks cannot resolve relative host paths, and a
+      # named volume needs none.
+      LEDGER_PATH: /var/lib/ferrule/ledger.jsonl
+      LEDGER_RETENTION: ${LEDGER_RETENTION:-8760h}
+
+      # Demarcation probe. Unset PROBE_TARGETS leaves it off. Point
+      # wan_next_hop at your own WAN1 next hop, by its literal address.
+      PROBE_TARGETS: ${PROBE_TARGETS:-}
+      PROBE_INTERVAL: ${PROBE_INTERVAL:-60s}
+      PROBE_COUNT: ${PROBE_COUNT:-10}
+
+      # Hypervisors and storage, one slot each. Every slot is listed because
+      # Portainer only passes a variable into the container when this file
+      # names it. The Settings page generates the lines for a new source:
+      #   SOURCE_1=proxmox https://pve1:8006 name=pve-lab user=telemetry@pve!ro
+      #   SOURCE_1_SECRET=<token secret>
+      SOURCE_1: ${SOURCE_1:-}
+      SOURCE_1_SECRET: ${SOURCE_1_SECRET:-}
+      SOURCE_2: ${SOURCE_2:-}
+      SOURCE_2_SECRET: ${SOURCE_2_SECRET:-}
+      SOURCE_3: ${SOURCE_3:-}
+      SOURCE_3_SECRET: ${SOURCE_3_SECRET:-}
+      SOURCE_4: ${SOURCE_4:-}
+      SOURCE_4_SECRET: ${SOURCE_4_SECRET:-}
+      SOURCE_5: ${SOURCE_5:-}
+      SOURCE_5_SECRET: ${SOURCE_5_SECRET:-}
+      SOURCE_6: ${SOURCE_6:-}
+      SOURCE_6_SECRET: ${SOURCE_6_SECRET:-}
+      SOURCE_7: ${SOURCE_7:-}
+      SOURCE_7_SECRET: ${SOURCE_7_SECRET:-}
+      SOURCE_8: ${SOURCE_8:-}
+      SOURCE_8_SECRET: ${SOURCE_8_SECRET:-}
+
+      # Sign-in. Off until ADMIN_PASSWORD (free) or OIDC_* / LDAP_* (paid)
+      # are set. See PORTAINER.md.
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      SESSION_TTL: ${SESSION_TTL:-168h}
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
+      OIDC_ISSUER: ${OIDC_ISSUER:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_ROLES: ${OIDC_ROLES:-}
+      OIDC_NAME: ${OIDC_NAME:-}
+      OIDC_SCOPES: ${OIDC_SCOPES:-}
+      OIDC_GROUPS_CLAIM: ${OIDC_GROUPS_CLAIM:-}
+      OIDC_REDIRECT_URL: ${OIDC_REDIRECT_URL:-}
+      LDAP_URL: ${LDAP_URL:-}
+      LDAP_STARTTLS: ${LDAP_STARTTLS:-false}
+      LDAP_VERIFY_TLS: ${LDAP_VERIFY_TLS:-true}
+      LDAP_CA_CERT: ${LDAP_CA_CERT:-}
+      LDAP_BIND_DN: ${LDAP_BIND_DN:-}
+      LDAP_BIND_PASSWORD: ${LDAP_BIND_PASSWORD:-}
+      LDAP_BASE_DN: ${LDAP_BASE_DN:-}
+      LDAP_USER_FILTER: ${LDAP_USER_FILTER:-}
+      LDAP_GROUP_ATTR: ${LDAP_GROUP_ATTR:-}
+      LDAP_ROLES: ${LDAP_ROLES:-}
+
+      # The license key, when there is one. Without it every install runs a
+      # 30-day trial of the paid features, then carries on as Community.
+      FERRULE_LICENSE: ${FERRULE_LICENSE:-}
+
+      # Notification channels. Each is off until its variables are set; any
+      # number can be on. Slack, Teams, PagerDuty and the webhook are paid.
+      # Settings -> Notifications shows each one's state and the rules in
+      # force; see PORTAINER.md for what each variable means.
+      GOTIFY_URL: ${GOTIFY_URL:-}
+      GOTIFY_TOKEN: ${GOTIFY_TOKEN:-}
+      NTFY_URL: ${NTFY_URL:-}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+      PUSHOVER_TOKEN: ${PUSHOVER_TOKEN:-}
+      PUSHOVER_USER: ${PUSHOVER_USER:-}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_TLS: ${SMTP_TLS:-}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_TO: ${SMTP_TO:-}
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      TEAMS_WEBHOOK_URL: ${TEAMS_WEBHOOK_URL:-}
+      PAGERDUTY_ROUTING_KEY: ${PAGERDUTY_ROUTING_KEY:-}
+      WEBHOOK_URL: ${WEBHOOK_URL:-}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-}
+      APPRISE_URL: ${APPRISE_URL:-}
+      APPRISE_URLS: ${APPRISE_URLS:-}
+      APPRISE_KEY: ${APPRISE_KEY:-}
+
+      # Inventory of the vCenter and Proxmox VE sources, as Excel, CSV or
+      # HTML from the Virtualization tab. Taking one by hand is free; the
+      # daily run, history and the Changes sheet are paid. See PORTAINER.md.
+      # Encrypts local users and groups on the volume (paid). 32 random bytes
+      # in base64: openssl rand -base64 32, or Settings → Users and groups.
+      SETTINGS_KEY: ${SETTINGS_KEY:-}
+
+      # The assistant (experimental, paid): Explain on alerts, Review on
+      # sources, answered by a language model you choose. Up to four, one
+      # per slot: the provider (claude, openai, gemini, xai, or llamacpp,
+      # lmstudio, ollama or local), then the address of a model you run, then
+      # optional name=, model=, context= and timeout=. The key goes in
+      # AI_n_KEY. Settings -> Add a model writes them. See PORTAINER.md.
+      AI_1: ${AI_1:-}
+      AI_1_KEY: ${AI_1_KEY:-}
+      AI_2: ${AI_2:-}
+      AI_2_KEY: ${AI_2_KEY:-}
+      AI_3: ${AI_3:-}
+      AI_3_KEY: ${AI_3_KEY:-}
+      AI_4: ${AI_4:-}
+      AI_4_KEY: ${AI_4_KEY:-}
+      # One model, as before there were slots: slot 1 when AI_1 is not set.
+      AI_PROVIDER: ${AI_PROVIDER:-}
+      AI_URL: ${AI_URL:-}
+      AI_MODEL: ${AI_MODEL:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_CONTEXT: ${AI_CONTEXT:-}
+      AI_TIMEOUT: ${AI_TIMEOUT:-5m}
+
+      INVENTORY: ${INVENTORY:-on}
+      INVENTORY_AT: ${INVENTORY_AT:-02:30}
+      # Days of inventory history: a year by default; 2557 keeps seven years.
+      INVENTORY_KEEP: ${INVENTORY_KEEP:-365}
+      # A copy of every inventory in PostgreSQL, for Grafana and Power BI
+      # (paid). For the stack's own, add "postgres" to COMPOSE_PROFILES and
+      # set INVENTORY_DB_PASSWORD; for one you run, set INVENTORY_DB_URL. The
+      # reader password makes a read-only ferrule_reader role for reports.
+      INVENTORY_DB_URL: ${INVENTORY_DB_URL:-}
+      INVENTORY_DB_PASSWORD: ${INVENTORY_DB_PASSWORD:-}
+      INVENTORY_DB_READER_PASSWORD: ${INVENTORY_DB_READER_PASSWORD:-}
+      INVENTORY_DB_CA: ${INVENTORY_DB_CA:-}
+
+      # Backups. Off until a target is set: BACKUP_DIR comes from an overlay
+      # that mounts an NFS or SMB share (docker-compose.backup-nfs.yml,
+      # docker-compose.backup-smb.yml); BACKUP_S3_* is object storage, paid.
+      # See PORTAINER.md.
+      BACKUP_NAME: ${BACKUP_NAME:-ferrule}
+      BACKUP_KEY: ${BACKUP_KEY:-}
+      BACKUP_AT: ${BACKUP_AT:-03:30}
+      BACKUP_HISTORY: ${BACKUP_HISTORY:-true}
+      BACKUP_HISTORY_DAY: ${BACKUP_HISTORY_DAY:-sunday}
+      BACKUP_KEEP: ${BACKUP_KEEP:-14}
+      BACKUP_HISTORY_KEEP: ${BACKUP_HISTORY_KEEP:-4}
+      BACKUP_RESTORE: ${BACKUP_RESTORE:-auto}
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      BACKUP_S3_REGION: ${BACKUP_S3_REGION:-us-east-1}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-ferrule}
+      BACKUP_S3_ACCESS_KEY: ${BACKUP_S3_ACCESS_KEY:-}
+      BACKUP_S3_SECRET_KEY: ${BACKUP_S3_SECRET_KEY:-}
+      DASHBOARD_URL: ${DASHBOARD_URL:-}
+      NOTIFY_DEFAULT: ${NOTIFY_DEFAULT:-bad}
+      NOTIFY_RULES: ${NOTIFY_RULES:-}
+      NOTIFY_DELAY: ${NOTIFY_DELAY:-2m}
+      NOTIFY_ON_CLEAR: ${NOTIFY_ON_CLEAR:-true}
+      NOTIFY_REPEAT: ${NOTIFY_REPEAT:-off}
+      NOTIFY_QUIET: ${NOTIFY_QUIET:-}
+      TZ: ${TZ:-}
+      PROBE_TIMEOUT: ${PROBE_TIMEOUT:-2s}
+
+      # Read by Compose, not the collector: passed in only so Settings ->
+      # Stack environment can start from what is set. Never a secret.
+      COMPOSE_PROFILES: ${COMPOSE_PROFILES:-}
+      WEB_PORT: ${WEB_PORT:-8090}
+      FERRULE_IMAGE: ${FERRULE_IMAGE:-git.uglyhousesneedlove.com/steve/ferrule}
+      FERRULE_VERSION: ${FERRULE_VERSION:-}
+      RETENTION: ${RETENTION:-13w}
+      GOTIFY_ADMIN_USER: ${GOTIFY_ADMIN_USER:-admin}
+      GOTIFY_PORT: ${GOTIFY_PORT:-8091}
+      IGOTIFY_PORT: ${IGOTIFY_PORT:-8092}
+      IGOTIFY_GOTIFY_URLS: ${IGOTIFY_GOTIFY_URLS:-http://gotify}
+      APPRISE_PORT: ${APPRISE_PORT:-8093}
+      INVENTORY_DB_BIND: ${INVENTORY_DB_BIND:-127.0.0.1}
+      INVENTORY_DB_PORT: ${INVENTORY_DB_PORT:-5432}
+    ports:
+      # 8090 rather than 8080, so it does not collide with an existing
+      # earlier deployment on the same host.
+      - "${WEB_PORT:-8090}:8080"
+    volumes:
+      # A named volume, so there is no host path for Portainer to fail to
+      # resolve. The root filesystem stays read-only; this is the one writable
+      # mount, and it is what makes the outage archive outlive the controller
+      # 21-hour window.
+      - ledger-data:/var/lib/ferrule
+    sysctls:
+      # Lets the container open an unprivileged ICMP datagram socket for the
+      # demarcation probe, with cap_drop: ALL still in force. The range must
+      # include the UID/GID the image runs as, which is 65534. Without this the
+      # probe reports itself unavailable and nothing else is affected.
+      net.ipv4.ping_group_range: "65534 65534"
+    depends_on:
+      - victoria-metrics
+    healthcheck:
+      # The image is scratch — no shell, no curl. The binary probes itself.
+      test: ["CMD", "/ferrule", "-healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  victoria-metrics:
+    # Pin to a release tag once you have one you are happy with.
+    image: victoriametrics/victoria-metrics:latest
+    container_name: ferrule-victoria-metrics
+    restart: unless-stopped
+    command:
+      - "-storageDataPath=/victoria-metrics-data"
+      - "-retentionPeriod=${RETENTION:-13w}"
+      - "-httpListenAddr=:8428"
+      - "-memory.allowedPercent=60"
+    volumes:
+      - vm-data:/victoria-metrics-data
+    # Not published. The dashboard reaches it over the stack network and
+    # proxies queries, so it never needs to be on your LAN.
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ---- Optional: Gotify and iGotify --------------------------------------
+  #
+  # Neither starts unless its profile is enabled on the stack:
+  #   COMPOSE_PROFILES=gotify,igotify   both, for a host with neither
+  #   COMPOSE_PROFILES=igotify          iGotify beside a Gotify you already run
+  # Leave COMPOSE_PROFILES unset if you run both already, and point
+  # GOTIFY_URL at your server.
+  #
+  # Inside the stack the collector reaches Gotify as http://gotify, so set
+  # GOTIFY_URL=http://gotify when using the bundled one. First deploy, then
+  # create an application in Gotify's web UI, put its token in GOTIFY_TOKEN,
+  # and update the stack.
+  #
+  # For HMS-Docker hosts, docker-compose.hms-docker.yml adds the Traefik
+  # routes and proxy network; see PORTAINER.md.
+  gotify:
+    profiles: ["gotify"]
+    image: gotify/server:latest
+    container_name: ferrule-gotify
+    restart: unless-stopped
+    environment:
+      GOTIFY_DEFAULTUSER_NAME: ${GOTIFY_ADMIN_USER:-admin}
+      # Set this. Unset, Gotify creates its admin with the password "admin".
+      GOTIFY_DEFAULTUSER_PASS: ${GOTIFY_ADMIN_PASSWORD:-}
+      TZ: ${TZ:-}
+    volumes:
+      # A named volume, like the outage archive: no host path to resolve.
+      - gotify-data:/app/data
+    ports:
+      - "${GOTIFY_PORT:-8091}:80"
+    security_opt:
+      - no-new-privileges:true
+
+  # Relays Gotify messages to the iGotify iPhone app through Apple's push
+  # service. The phone must reach both Gotify and iGotify, so away from home
+  # they need a tunnel or reverse proxy in front of them.
+  igotify:
+    profiles: ["igotify"]
+    image: ghcr.io/androidseb25/igotify-notification-assist:latest
+    container_name: ferrule-igotify
+    hostname: igotify
+    restart: unless-stopped
+    pull_policy: always
+    environment:
+      # http://gotify for the bundled Gotify; your server's URL otherwise.
+      GOTIFY_URLS: ${IGOTIFY_GOTIFY_URLS:-http://gotify}
+      # Only needed when Gotify and iGotify are not reachable over public
+      # domains. Set all three or none: GOTIFY_URLS, these two.
+      GOTIFY_CLIENT_TOKENS: ${IGOTIFY_CLIENT_TOKENS:-}
+      SECNTFY_TOKENS: ${IGOTIFY_SECNTFY_TOKENS:-}
+    volumes:
+      - igotify-data:/app/data
+    ports:
+      - "${IGOTIFY_PORT:-8092}:8080"
+    security_opt:
+      - no-new-privileges:true
+
+  # ---- Optional: PostgreSQL, for the inventory's database copy ----------
+  #
+  # Starts only with "postgres" in COMPOSE_PROFILES. Set
+  # INVENTORY_DB_PASSWORD and the collector finds it at ferrule-postgres on
+  # its own; nothing else to set. It holds a copy: the inventory files on
+  # ledger-data stay the master and travel with the backups, and the copy is
+  # rebuilt from them, so this volume needs no backup of its own.
+  #
+  # Grafana and Power BI connect with their own PostgreSQL connectors, as
+  # ferrule_reader with INVENTORY_DB_READER_PASSWORD, never as the writer.
+  # The port listens on the Docker host's loopback only; set
+  # INVENTORY_DB_BIND=0.0.0.0 for a reporting tool on another machine.
+  postgres:
+    profiles: ["postgres"]
+    image: postgres:18-alpine
+    container_name: ferrule-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ferrule
+      POSTGRES_DB: ferrule
+      # The image refuses to start without one, so a missing password shows
+      # here rather than as an open database.
+      POSTGRES_PASSWORD: ${INVENTORY_DB_PASSWORD:-}
+      TZ: ${TZ:-}
+    volumes:
+      # PostgreSQL 18 keeps its data under a versioned directory here.
+      - postgres-data:/var/lib/postgresql
+    ports:
+      - "${INVENTORY_DB_BIND:-127.0.0.1}:${INVENTORY_DB_PORT:-5432}:5432"
+    # Postgres sets POSTGRES_PASSWORD only when its volume is first made, so
+    # changing INVENTORY_DB_PASSWORD later left Ferrule refused. The first
+    # check in each container sets the password from the environment, over
+    # the container's own socket, which needs none, and marks /tmp so it is
+    # done once: a redeploy with a new password is a new container with an
+    # empty /tmp. (A password cannot be tested from in here: Postgres trusts
+    # every connection from inside its container, 127.0.0.1 included.) The
+    # password reaches SQL as a psql variable, so no quote in it can break
+    # the statement.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ferrule -d ferrule && { [ -f /tmp/ferrule-password-set ] || { echo \"ALTER ROLE ferrule PASSWORD :'pw';\" | psql -U ferrule -d ferrule -q -v ON_ERROR_STOP=1 -v pw=\"$$POSTGRES_PASSWORD\" >/dev/null && touch /tmp/ferrule-password-set; }; }"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+
+  # Apprise: one paid channel that reaches more than a hundred services.
+  # Starts only with "apprise" in COMPOSE_PROFILES; then set
+  # APPRISE_URL=http://apprise:8000 and APPRISE_URLS to the services to
+  # notify. With APPRISE_URLS it keeps nothing, so it needs no backup.
+  apprise:
+    profiles: ["apprise"]
+    image: caronc/apprise:latest
+    container_name: ferrule-apprise
+    hostname: apprise
+    restart: unless-stopped
+    pull_policy: always
+    volumes:
+      - apprise-config:/config
+    ports:
+      - "${APPRISE_PORT:-8093}:8000"
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  vm-data:
+  ledger-data:
+  gotify-data:
+  igotify-data:
+  apprise-config:
+  postgres-data:

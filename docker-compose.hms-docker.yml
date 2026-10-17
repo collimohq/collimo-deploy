@@ -1,0 +1,65 @@
+# Optional overlay for Docker hosts running HMS-Docker, whose Traefik and
+# hms-docker_proxy_net network already exist.
+#
+# Add it in Portainer under the Git stack's "Additional paths", after
+# docker-compose.yml. It routes the dashboard, and Gotify and iGotify when
+# their profiles are on, through Traefik by hostname, behind the same
+# internal allow-list middleware HMS-Docker uses for its own apps.
+#
+# Set the hostnames as stack variables; each must resolve to your Traefik:
+#   TELEMETRY_HOSTNAME=telemetry.example.com
+#   GOTIFY_HOSTNAME=gotify.example.com      (only with COMPOSE_PROFILES gotify)
+#   IGOTIFY_HOSTNAME=igotify.example.com    (only with COMPOSE_PROFILES igotify)
+#   TRAEFIK_MIDDLEWARES=internal-ipallowlist@file   (the default)
+#
+# Router names carry a ferrule- prefix so they never collide with routers an
+# existing Gotify on the same Traefik already uses.
+#
+# Each container sits on two networks, its stack's own and the proxy one, so
+# Traefik has to pick an address. Left to traefik.docker.network, Traefik 3.7
+# on Docker 29 has been seen failing to match the name, falling back to the
+# stack network it is not on, and timing out every request (issue #1). So
+# each service names its server by container name instead: Docker's DNS on
+# the proxy network answers that with the proxy address, and Traefik never
+# chooses. The names are the container_name values in docker-compose.yml.
+
+services:
+  telemetry:
+    networks:
+      - default
+      - hms-docker_proxy_net
+    environment:
+      # Shown on Settings -> Stack environment; the collector ignores them.
+      TELEMETRY_HOSTNAME: ${TELEMETRY_HOSTNAME:-telemetry.localhost}
+      GOTIFY_HOSTNAME: ${GOTIFY_HOSTNAME:-gotify.localhost}
+      IGOTIFY_HOSTNAME: ${IGOTIFY_HOSTNAME:-igotify.localhost}
+      TRAEFIK_MIDDLEWARES: ${TRAEFIK_MIDDLEWARES:-internal-ipallowlist@file}
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.ferrule.loadbalancer.server.url=http://ferrule:8080
+      - traefik.http.routers.ferrule.rule=Host(`${TELEMETRY_HOSTNAME:-telemetry.localhost}`)
+      - traefik.http.routers.ferrule.middlewares=${TRAEFIK_MIDDLEWARES:-internal-ipallowlist@file}
+
+  gotify:
+    networks:
+      - default
+      - hms-docker_proxy_net
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.ferrule-gotify.loadbalancer.server.url=http://ferrule-gotify:80
+      - traefik.http.routers.ferrule-gotify.rule=Host(`${GOTIFY_HOSTNAME:-gotify.localhost}`)
+      - traefik.http.routers.ferrule-gotify.middlewares=${TRAEFIK_MIDDLEWARES:-internal-ipallowlist@file}
+
+  igotify:
+    networks:
+      - default
+      - hms-docker_proxy_net
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.ferrule-igotify.loadbalancer.server.url=http://ferrule-igotify:8080
+      - traefik.http.routers.ferrule-igotify.rule=Host(`${IGOTIFY_HOSTNAME:-igotify.localhost}`)
+      - traefik.http.routers.ferrule-igotify.middlewares=${TRAEFIK_MIDDLEWARES:-internal-ipallowlist@file}
+
+networks:
+  hms-docker_proxy_net:
+    external: true

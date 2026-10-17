@@ -1,0 +1,41 @@
+# Backups to an SMB (Windows or NAS) share. Add this file under the Git
+# stack's "Additional paths" in Portainer, beside docker-compose.yml, and
+# set:
+#
+#   BACKUP_SMB_SERVER=192.168.1.20      the server
+#   BACKUP_SMB_SHARE=backups            the share
+#   BACKUP_SMB_USERNAME=ferrule         an account that can write to it
+#   BACKUP_SMB_PASSWORD=...             its password; no commas
+#   BACKUP_SMB_VERSION=3.0              optional
+#
+# Docker mounts the share as a named volume, so there is no bind mount and
+# no host path: the stack stays Portainer-safe. The Docker host needs the
+# CIFS client (cifs-utils on Debian and Ubuntu).
+#
+# The share is mounted as UID/GID 65534, which the collector runs as, with
+# files readable only by it.
+#
+# Docker reads these options only when it creates the volume. To change
+# them later, such as a new password, remove the stack's backup-target
+# volume and redeploy.
+
+services:
+  telemetry:
+    environment:
+      BACKUP_DIR: /backup
+      # Shown on Settings -> Stack environment; the collector ignores them.
+      # Never the password.
+      BACKUP_SMB_SERVER: ${BACKUP_SMB_SERVER:-}
+      BACKUP_SMB_SHARE: ${BACKUP_SMB_SHARE:-}
+      BACKUP_SMB_USERNAME: ${BACKUP_SMB_USERNAME:-}
+      BACKUP_SMB_VERSION: ${BACKUP_SMB_VERSION:-3.0}
+    volumes:
+      - backup-target:/backup
+
+volumes:
+  backup-target:
+    driver: local
+    driver_opts:
+      type: cifs
+      o: "username=${BACKUP_SMB_USERNAME:?set BACKUP_SMB_USERNAME},password=${BACKUP_SMB_PASSWORD:?set BACKUP_SMB_PASSWORD},uid=65534,gid=65534,file_mode=0600,dir_mode=0700,vers=${BACKUP_SMB_VERSION:-3.0}"
+      device: "//${BACKUP_SMB_SERVER:?set BACKUP_SMB_SERVER}/${BACKUP_SMB_SHARE:?set BACKUP_SMB_SHARE}"

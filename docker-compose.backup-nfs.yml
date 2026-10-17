@@ -1,0 +1,36 @@
+# Backups to an NFS export. Add this file under the Git stack's
+# "Additional paths" in Portainer, beside docker-compose.yml, and set:
+#
+#   BACKUP_NFS_SERVER=192.168.1.20        the NAS
+#   BACKUP_NFS_PATH=/volume1/backups      the export
+#   BACKUP_NFS_OPTIONS=nfsvers=4.1        optional; the default suits most NAS
+#
+# Docker mounts the export as a named volume, so there is no bind mount and
+# no host path: the stack stays Portainer-safe. The Docker host needs the
+# NFS client (nfs-common on Debian and Ubuntu); most have it.
+#
+# The collector writes as UID/GID 65534. The export must let it: on a
+# Synology, "Map all users to admin" in the NFS rule; elsewhere, all_squash
+# with anonuid=65534,anongid=65534, or a directory owned by 65534.
+#
+# Docker reads these options only when it creates the volume. To change
+# them later, remove the stack's backup-target volume and redeploy.
+
+services:
+  telemetry:
+    environment:
+      BACKUP_DIR: /backup
+      # Shown on Settings -> Stack environment; the collector ignores them.
+      BACKUP_NFS_SERVER: ${BACKUP_NFS_SERVER:-}
+      BACKUP_NFS_PATH: ${BACKUP_NFS_PATH:-}
+      BACKUP_NFS_OPTIONS: ${BACKUP_NFS_OPTIONS:-nfsvers=4.1,rw,soft,timeo=150}
+    volumes:
+      - backup-target:/backup
+
+volumes:
+  backup-target:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: "addr=${BACKUP_NFS_SERVER:?set BACKUP_NFS_SERVER to the NAS},${BACKUP_NFS_OPTIONS:-nfsvers=4.1,rw,soft,timeo=150}"
+      device: ":${BACKUP_NFS_PATH:?set BACKUP_NFS_PATH to the export}"
