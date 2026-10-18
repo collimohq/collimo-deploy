@@ -1,0 +1,53 @@
+name: How it runs in your setup
+description: Tell us what you run Ferrule against, and whether it works. Every report helps the compatibility list.
+title: "Setup: "
+labels: ["environment"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ferrule is tested on a few setups; you probably run a different one. Telling us what works, and what doesn't, is the most useful thing a beta tester can do. Reports become the [compatibility list](https://docs.ferrulehq.dev/reference/compatibility/).
+
+        Something broken? Please open **Something's wrong** as well, so it can be fixed.
+  - type: input
+    id: version
+    attributes:
+      label: Ferrule version
+      description: Shown at the bottom of every page.
+      placeholder: "0.0.3"
+    validations:
+      required: true
+  - type: textarea
+    id: gear
+    attributes:
+      label: What Ferrule watches for you
+      description: One line each, with the model and firmware or software version.
+      placeholder: |
+        UniFi: UCG Ultra, Network 9.3.45
+        Protect: UNVR Pro, Protect 5.1
+        Proxmox VE 8.2, 3 nodes, Ceph
+        Synology DS923+, DSM 7.2.1
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: How did it go?
+      options:
+        - Everything works
+        - Mostly works, a few things missing or wrong
+        - Some of it doesn't work
+        - It doesn't work
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: What's missing or wrong, if anything
+      description: Readings that are missing or look wrong, and anything under Needs attention that shouldn't be.
+  - type: input
+    id: docker
+    attributes:
+      label: Docker host
+      description: Optional. What runs the stack.
+      placeholder: Portainer 2.21 on Debian 12, x86_64
