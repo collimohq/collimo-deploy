@@ -1,0 +1,65 @@
+name: Support my gear
+description: Something you'd like Ferrule to watch that it doesn't yet, such as a switch, UPS, server or storage.
+title: "Support: "
+labels: ["gear request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks! Requests decide what we build next. If someone has already asked for the same thing, add a 👍 to theirs instead: that's how we count demand.
+
+        See [What Ferrule watches](https://docs.ferrulehq.dev/reference/what-ferrule-watches/) first: generic SNMP (most managed switches, UPSes and PDUs), Redfish (most servers) and up-checks for anything with an address are being added.
+  - type: input
+    id: vendor
+    attributes:
+      label: Vendor and model
+      placeholder: Juniper EX3400-48P
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What is it?
+      options:
+        - Switch
+        - Router or firewall
+        - Wi-Fi access points or controller
+        - UPS or PDU
+        - Server (hardware)
+        - Hypervisor
+        - Storage or NAS
+        - Camera system
+        - Something else
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Firmware or software version
+      placeholder: Junos 23.4R2
+  - type: checkboxes
+    id: how
+    attributes:
+      label: How can it be read?
+      description: Tick any you know it supports.
+      options:
+        - label: SNMP v2c
+        - label: SNMPv3
+        - label: A REST API
+        - label: Redfish (servers)
+        - label: SSH only
+        - label: I don't know
+  - type: textarea
+    id: want
+    attributes:
+      label: What would you want to see?
+      description: The readings or alerts that matter to you, such as port errors, PSU failures, UPS runtime or disk health.
+    validations:
+      required: true
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Can you help?
+      options:
+        - label: I can share a capture from Ferrule's diagnostic bundle (anonymised by default)
+        - label: I can test a build against the real device
