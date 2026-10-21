@@ -183,4 +183,6 @@ Every image carries its software bill of materials (CycloneDX) at `/sbom.cdx.jso
 
 ---
 
+Collimo and the Collimo logo are trademarks of COLLIMO LLC. © 2026 COLLIMO LLC. All rights reserved.
+
 UniFi, UniFi Protect and UniFi OS are trademarks of Ubiquiti Inc. VMware, vCenter and ESXi are trademarks of Broadcom Inc. and its subsidiaries; Proxmox of Proxmox Server Solutions GmbH; Synology, QNAP, TrueNAS and the other products named here of their respective owners. They are named only to describe what Collimo reads from, runs on, or sends to. Collimo is an independent project and is not affiliated with, sponsored by, or endorsed by any of them. See [LICENSE](LICENSE) for the terms.
