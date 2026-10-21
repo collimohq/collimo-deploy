@@ -52,7 +52,7 @@ I line it up. A collimator is the part of an optical instrument that lines the l
 | **UniFi Protect** | Every camera's state, the recorder's disks and their health, its CPU temperature, each camera's throughput | [Guide](https://docs.collimo.dev/connect/unifi-protect/) |
 | **VMware vCenter and ESXi** | Hosts, maintenance mode, CPU, memory, ESXi build; datastores; VM power state and the busiest VMs; vCenter's alarms | [Guide](https://docs.collimo.dev/connect/vcenter/) |
 | **Proxmox VE and Ceph** | Nodes, quorum, storage use, guests and the busiest of them, Ceph health | [Guide](https://docs.collimo.dev/connect/proxmox/) |
-| **Proxmox Backup Server** | Datastore use and its own fill estimate, the past week's jobs, when each machine was last backed up | [Guide](https://docs.collimo.dev/connect/pbs/) |
+| **Proxmox Backup Server** | The backup server's health and capacity: datastore use and its own fill estimate, the past week's jobs, when each machine was last backed up | [Guide](https://docs.collimo.dev/connect/pbs/) |
 | **Synology DSM** | Model, DSM version, CPU, memory, temperature; volumes and RAID; drives and their SMART verdicts | [Guide](https://docs.collimo.dev/connect/synology/) |
 | **QNAP** (SNMPv3) | CPU, memory, temperatures and fans; disks and M.2 drives; storage pools | [Guide](https://docs.collimo.dev/connect/qnap/) |
 | **TrueNAS** | Pools, disk read, write and checksum errors, temperatures, TrueNAS's own alerts | [Guide](https://docs.collimo.dev/connect/truenas/) |
