@@ -1,16 +1,16 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:ec368b99-dd5d-4021-bd47-4bd6e7cd2d00",
+  "serialNumber": "urn:uuid:f330aedf-dba8-410a-9613-4c5af7242265",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-10-22T17:26:30Z",
+    "timestamp": "2026-10-22T20:48:48Z",
     "component": {
       "type": "container",
       "bom-ref": "collimo-image",
       "name": "collimo",
-      "version": "0.1.0",
-      "purl": "pkg:oci/collimo@0.1.0?repository_url=ghcr.io/collimohq/collimo&arch=amd64",
+      "version": "0.1.1",
+      "purl": "pkg:oci/collimo@0.1.1?repository_url=ghcr.io/collimohq/collimo&arch=amd64",
       "properties": [{"name": "base-image", "value": "scratch"}]
     }
   },
@@ -19,9 +19,9 @@
       "type": "application",
       "bom-ref": "collimo",
       "name": "collimo",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "description": "The Collimo collector, a static linux/amd64 binary",
-      "purl": "pkg:generic/collimohq/collimo@0.1.0?arch=amd64"
+      "purl": "pkg:generic/collimohq/collimo@0.1.1?arch=amd64"
     },
     {
       "type": "library",
