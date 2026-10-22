@@ -1,21 +1,21 @@
 # Portainer GitOps deployment
 
-Portainer reads the compose file from the public `ferrule-deploy`
+Portainer reads the compose file from the public `collimo-deploy`
 repository and pulls the published image. Nothing is built on the Docker
 host. After the initial setup, updates are a single click — or zero clicks
 with a webhook.
 
 ## Before you start
 
-- Ferrule runs from a published image, a built binary: nothing is compiled
+- Collimo runs from a published image, a built binary: nothing is compiled
   on your Docker host. Portainer reads only the compose file from the
   repository.
 - Portainer must reach
-  `https://github.com/ferrulehq/ferrule-deploy`. It is public,
+  `https://github.com/collimohq/collimo-deploy`. It is public,
   so no account or token is needed.
-- The Docker host needs outbound internet to pull the Ferrule and
+- The Docker host needs outbound internet to pull the Collimo and
   VictoriaMetrics images. A licensed install also fetches
-  `https://license.ferrulehq.dev/revoked` once a day (see "Online
+  `https://license.collimo.dev/revoked` once a day (see "Online
   confirmation").
 - Nothing goes on the host filesystem. No bind mounts, no config files.
 
@@ -51,21 +51,21 @@ console.
 
 The image is public: Portainer pulls it with no registry login. It holds
 the built binary only, never the source. It is published on GitHub's
-container registry, `ghcr.io/ferrulehq/ferrule`. If it ever moves,
-`FERRULE_IMAGE` is the one line that changes.
+container registry, `ghcr.io/collimohq/collimo`. If it ever moves,
+`COLLIMO_IMAGE` is the one line that changes.
 
 ---
 
 ## Step 3 — Create the stack
 
 1. **Stacks → Add stack**.
-2. Name it `ferrule` — lowercase, no spaces. Portainer uses this as
+2. Name it `collimo` — lowercase, no spaces. Portainer uses this as
    the compose project name, which also keeps its volumes apart from any
    other stack's.
 3. Choose **Repository** as the build method.
 4. Fill in:
    - **Repository URL** —
-     `https://github.com/ferrulehq/ferrule-deploy`
+     `https://github.com/collimohq/collimo-deploy`
    - **Repository reference** — `refs/heads/main`
    - **Compose path** — `docker-compose.yml`
    - **Authentication** — off; the repository is public. Turn it on only
@@ -83,10 +83,14 @@ container registry, `ghcr.io/ferrulehq/ferrule`. If it ever moves,
 
 Scroll to **Environment variables** and switch to **Advanced mode** if
 offered — you can paste the whole block at once. The contents of
-`stack.env.example`, with your values filled in:
+`stack.env.example`, with your values filled in.
+
+A `$` in any value must be written `$$`. Compose reads `$name` as a
+variable, so a password such as `$ecret-pass` would arrive as `-pass`.
+The setup wizard writes the `$$` for you.
 
 ```
-FERRULE_VERSION=0.9.0
+COLLIMO_VERSION=0.9.0
 
 UNIFI_HOST=https://192.168.1.1
 UNIFI_API_KEY=gateway-api-key
@@ -107,7 +111,7 @@ Everything else has a working default. Once the dashboard is up,
 starting from what the stack is running with: change what you need and it
 gives the lines to paste here. It never asks for a secret. A credential from
 elsewhere gets a placeholder to replace in Portainer, and the keys and
-passwords that are Ferrule's own (`BACKUP_KEY`, `SETTINGS_KEY`,
+passwords that are Collimo's own (`BACKUP_KEY`, `SETTINGS_KEY`,
 `ADMIN_PASSWORD`, the database passwords) can be made in the browser, never
 sent anywhere.
 
@@ -115,15 +119,17 @@ Add these only if you need them:
 
 | Name | Default | When to change it |
 |---|---|---|
-| `FERRULE_VERSION` | **required** | the release to run, such as `0.9.0`; `qa` for what is under test. Never `latest` |
-| `FERRULE_IMAGE` | `ghcr.io/ferrulehq/ferrule` | where the image is published; change it only if told to |
+| `COLLIMO_VERSION` | **required** | the release to run, such as `0.9.0`; `qa` for what is under test. Never `latest` |
+| `COLLIMO_IMAGE` | `ghcr.io/collimohq/collimo` | where the image is published; change it only if told to |
 | `WEB_PORT` | `8090` | something else already has 8090 |
 | `UNIFI_ENABLED` | `true` | `false` to watch only hypervisors and storage, or to try this stack beside an existing one without polling the controller twice |
-| `SOURCE_1` … `SOURCE_8` | empty | a hypervisor or storage system per slot, see below |
-| `SOURCE_n_SECRET` | empty | the matching token, password or key |
+| `SOURCE_1` … `SOURCE_8` | empty | a hypervisor or storage system per slot, or a list of SNMP switches, UPSes or Redfish servers, see below |
+| `SOURCE_n_SECRET` | empty | the matching token, password, key, BMC password or SNMP community |
+| `CHECKS` | empty | up-checks for anything with an address: `ping <host>`, `http <URL>` or `tcp <host:port>`, separated by `;`, each with optional `name=`, `every=` and `timeout=`. See below |
 | `POLL_INTERVAL` | `30s` | values below `10s` are clamped |
 | `REQUEST_TIMEOUT` | `20s` | how long one request to a console may take |
 | `UNIFI_SITE` | `default` | you renamed your site |
+| `PORT_SLEEPS` | empty | switch ports whose computer sleeps, as `mac/port` separated by commas: a drop to 100 Mb/s or lower there is expected. The slow-link alert's button writes it |
 | `UNIFI_OS` | `true` | `false` for a self-hosted standalone controller |
 | `UNIFI_VERIFY_TLS` | `false` | you installed a trusted cert on the console |
 | `PROTECT_ENABLED` | `true` | `false` if you do not run Protect |
@@ -132,7 +138,7 @@ Add these only if you need them:
 | `WAN_ENABLED` | `true` | `false` if there is no WAN here worth watching |
 | `WAN_POLL_INTERVAL` | `60s` | paces the v2 endpoints only; floor `30s` |
 | `WAN_DASHBOARD_SCALE` | `24h` | `7d` asks the controller for its widest window |
-| `SPEEDTEST_INTERVAL` | `15m` | how often speedtest history is re-read |
+| `SPEEDTEST_INTERVAL` | `15m` | how often speedtest history is re-read; `0` stops reading it |
 | `BACKFILL_ON_START` | `true` | `false` to start recording forward only |
 | `LEDGER_RETENTION` | `8760h` | how long the outage archive keeps events |
 | `PROBE_TARGETS` | empty | set it to turn the demarcation probe on, see below |
@@ -152,9 +158,10 @@ SOURCE_1=proxmox https://pve1.lab:8006 name=pve-lab user=telemetry@pve!ro
 SOURCE_1_SECRET=<API token secret>
 ```
 
-Kinds: `proxmox`, `pbs`, `vmware`, `synology`, `qnap`, `truenas`. The
-dashboard's **Settings → Add a source** generates both lines and says what
-read-only account to create on that system.
+Kinds: `proxmox`, `pbs`, `vmware`, `xcpng`, `synology`, `qnap`, `truenas`, and
+`snmp` for switches, `ups` for UPSes and `redfish` for servers through
+their BMC, which take several addresses in one slot (see below). The dashboard's **Settings → Add a source** generates both
+lines and says what read-only account to create on that system.
 
 Fixed slot names are deliberate: Portainer passes a variable into the
 container only when `docker-compose.yml` names it, so a free-form name would
@@ -165,8 +172,8 @@ otherwise (30 seconds at the least), and a self-signed certificate is
 accepted unless the slot says `tls=verify`.
 
 Where a system keeps its own alarms (vCenter, TrueNAS), they are the alerts
-and Ferrule adds no thresholds beside them. Where it does not (Proxmox VE,
-PBS, Synology, QNAP), Ferrule raises a few: storage at 90% full is a
+and Collimo adds no thresholds beside them. Where it does not (Proxmox VE,
+PBS, Synology, QNAP), Collimo raises a few: storage at 90% full is a
 warning and at 95% is bad, and anything the system itself calls degraded,
 crashed, failed or offline. Alerts already true when the collector starts
 are never sent as notifications.
@@ -195,11 +202,37 @@ vCenter's triggered alarms. Templates are not counted as machines.
 
 Alerts come from vCenter itself: each triggered alarm that nobody has
 acknowledged is a `vcenter_alarm` alert, red as critical and yellow as a
-warning, and notifies like any other. Ferrule adds no thresholds of its own;
+warning, and notifies like any other. Collimo adds no thresholds of its own;
 vCenter's defaults already watch host connection, CPU, memory and datastore
 usage, and you tune them there. **Acknowledging an alarm in vCenter clears it
-in Ferrule.** Alarms already open when the collector starts are not sent as
+in Collimo.** Alarms already open when the collector starts are not sent as
 notifications.
+
+#### XCP-ng, through Xen Orchestra
+
+XCP-ng 8.3, read through Xen Orchestra's REST API: XCP-ng itself has no
+read-only account. One slot is one Xen Orchestra, and every pool it manages
+is read. In Xen Orchestra, as an admin: add a user with permission `none`,
+copy the **Read only** role (it's a template and can't be given directly),
+give the copy to the user, and make the user a token with
+`"expiresIn":"0.5 year"`. The commands are on the
+[XCP-ng docs page](docs/site/docs/connect/xcpng.md).
+
+```
+SOURCE_1=xcpng https://xo.example.com name=xo
+SOURCE_1_SECRET=<the token>
+```
+
+What it reads: every pool and its HA; every host's power state, maintenance,
+pending reboot, CPU, memory, uptime and version; every storage repository's
+size, use and allocation (ISO libraries left out); every VM's power state and
+snapshots, CPU for the busiest fifteen; alarms and the newest events.
+
+Alerts: a host not running (`host_offline`), a storage repository at 90% or
+95% (`storage_full`), an alarm raised within the hour (`xcpng_alarm`: an
+alarm stays listed after its cause clears, so older ones are history), and
+the slot's own token expiring within a fortnight (`xcpng_token`). Every Xen
+Orchestra token expires.
 
 #### Proxmox VE, with Ceph
 
@@ -255,7 +288,7 @@ SOURCE_5_SECRET=<the token secret>
 ```
 
 PBS separates the token and its secret with a colon where Proxmox VE uses an
-equals sign; Ferrule handles that. What it reads: every datastore's use and
+equals sign; Collimo handles that. What it reads: every datastore's use and
 PBS's own estimate of when it fills; the latest run of every job in the
 last week (backups, verify, prune, sync, garbage collection); and each
 backup group's last backup, oldest first.
@@ -292,7 +325,7 @@ and DSM saying the box is hot.
 
 #### QNAP, over SNMPv3
 
-QTS and QuTS hero have no read-only API account, so Ferrule reads QNAP's own
+QTS and QuTS hero have no read-only API account, so Collimo reads QNAP's own
 SNMP MIB, over SNMPv3 with authentication and encryption. In **Control Panel
 → Network & File Services → SNMP**:
 
@@ -321,7 +354,7 @@ What it reads: model, firmware, uptime, CPU, memory, temperatures, fans;
 every disk's (and M.2 drive's) status and temperature; every storage pool's
 status and use, and every RAID group's status. QNAP has two MIBs: current
 QTS and QuTS hero fill the newer one (QTS-MIB) and leave model, uptime and
-memory out of the older (NAS-MIB). Ferrule reads both and takes the newer
+memory out of the older (NAS-MIB). Collimo reads both and takes the newer
 wherever it answers. Alerts as for Synology.
 
 #### TrueNAS
@@ -344,6 +377,86 @@ and ERROR or worse as bad. **Dismissing it in TrueNAS clears it here.**
 TrueNAS 25.04 marked the REST API this uses as deprecated, in favour of
 JSON-RPC over a WebSocket. It still answers through 25.10; if a later
 release drops it, the slot will say so.
+
+#### Switches from any maker, over SNMP
+
+Kind `snmp` reads managed switches over the standard MIBs (SNMPv2-MIB,
+IF-MIB, EtherLike-MIB, ENTITY-MIB and ENTITY-SENSOR-MIB, LLDP-MIB), whoever
+made them. One slot lists every switch that shares a community or SNMPv3
+user, comma-separated, up to 64; `:port` after an address if it is not 161.
+
+```
+SOURCE_3=snmp 192.168.1.2,192.168.1.3 name=core version=2c
+SOURCE_3_SECRET=<read-only community>
+
+SOURCE_4=snmp 10.0.1.2 name=dc version=3 user=telemetry auth=sha priv=aes
+SOURCE_4_SECRET=<auth passphrase>:<privacy passphrase>
+```
+
+`version=` is `2c` or `3`; without it, a slot with `user=` is SNMPv3 and one
+without is SNMPv2c. For SNMPv3, `auth=` is `sha` (the default) or `md5`,
+`priv=` is `aes` (the default) or `des`, and the secret is both passphrases
+joined by the first colon. SNMPv2c sends its community in clear: keep it to
+the management network.
+
+Each switch becomes a device on the LAN tab, beside the UniFi devices, with
+the same alerts: offline, reboots (from uptime), firmware changes, errors
+climbing, flapping, a link slower than it has run, half duplex, a hot
+chassis, and a fan the sensor reports not working. Only physical Ethernet
+ports are read; whether one is a fibre cage is a guess from its name, and
+optic diagnostics are in no standard MIB. A switch that stops answering is
+offline under its own name; a slot where nothing has ever answered, or every
+switch refuses the credentials, is the slot's error instead.
+
+#### UPSes, over UPS-MIB
+
+Kind `ups` reads RFC 1628, which most UPS network cards answer: the
+battery's status, charge and minutes left, seconds on battery, input
+voltage, where the output comes from and its load, and the UPS's own alarms.
+Its slot takes the same addresses and credentials as `snmp`:
+
+```
+SOURCE_5=ups 192.168.1.20,192.168.1.21 name=racks
+SOURCE_5_SECRET=<read-only community>
+```
+
+Each UPS is a panel on the **Power and servers** tab. Alerts: on battery
+(`ups_on_battery`) and battery low or depleted (`ups_battery_low`) are bad;
+battery needs replacing (`ups_battery_replace`, from the UPS's own alarm)
+and 90% load or more (`ups_overload`) are warnings; ten minutes of runtime
+or less is a warning and five or less is bad (`ups_runtime_low`). PDUs are
+not read: each maker's speaks its own MIB.
+
+#### Servers, over Redfish
+
+Kind `redfish` reads a server through its BMC (Dell iDRAC, HPE iLO,
+Supermicro, Lenovo XCC, or any other that speaks DMTF Redfish), following
+the links from `/redfish/v1/`: the system's maker, model, serial, BIOS,
+power state, health, processors and memory; its drives; each chassis's
+temperatures with the BMC's thresholds, fans, power supplies, redundancy
+and power drawn; and the BMC's firmware. It signs in with HTTP Basic on each
+request and opens no Redfish session. One slot lists every BMC sharing an
+account, each with `https://`, comma-separated; `user=` is required and the
+secret is the password:
+
+```
+SOURCE_7=redfish https://192.168.1.31,https://192.168.1.32 name=rack-a user=collimo
+SOURCE_7_SECRET=<the BMC account's password>
+```
+
+Make the account with the lowest role that reads: iDRAC **Read Only**, iLO
+**Login** privilege only, XCC **ReadOnly**. On Supermicro the lowest that
+reads Redfish is **Operator**, which can also power the server, so keep that
+password to the stack.
+
+Each server is a panel on the **Power and servers** tab, named by its BMC's
+address. Alerts, at the BMC's own levels, warning or bad: the server's
+overall health (`server_health`), a temperature at its non-critical or
+critical threshold (`server_temp`), a fan (`server_fan`), a supply failed or
+redundancy lost (`server_psu`), a drive not OK or predicting failure
+(`server_drive`); a BMC that stops answering is `source_down`. The classic
+Thermal and Power resources are read; a BMC offering only ThermalSubsystem
+and PowerSubsystem says so on its panel.
 
 ### Inventory reports
 
@@ -376,20 +489,20 @@ shows), and the inventories it read, with their fingerprints.
 **Evidence that history was not changed.** Each inventory records a SHA-256
 fingerprint of itself and of the one before, so the runs form a chain:
 editing or deleting a run breaks every fingerprint after it. The Sources
-sheet shows both. Ferrule checks the whole chain when it starts and after
+sheet shows both. Collimo checks the whole chain when it starts and after
 every run, and raises **Inventory history changed** if anything fails. A
 run that `INVENTORY_KEEP` expires is marked expired, not deleted, so the
 chain stays whole. Because whoever can change the files could rebuild a
 chain kept beside them, each fingerprint is also written to every backup
 target as `fingerprint-<run>.json` (never pruned) and to the database copy,
-which Ferrule checks against its files. For the strongest evidence, keep the
+which Collimo checks against its files. For the strongest evidence, keep the
 backup share under a snapshot schedule the stack's credentials cannot
-delete (Synology and QNAP immutable snapshots, TrueNAS periodic snapshots),
+delete (locked snapshots on Synology or QNAP, periodic ones on TrueNAS),
 or use S3 with Object Lock.
 
 **A copy in PostgreSQL**, for Grafana, Power BI or anything else with a
 PostgreSQL connector, no plugin needed. Every run goes into schema
-`ferrule`: a `runs` table, one table per sheet (`vms`, `disks`, `nics`,
+`collimo`: a `runs` table, one table per sheet (`vms`, `disks`, `nics`,
 `partitions`, `snapshots`, `hosts`, `datastores`, `clusters`, `health`,
 `sources`, `changes`), `vm_attributes` for vCenter's custom attributes, and a
 `latest_` view of each sheet for the fleet as the newest run saw it. Every
@@ -403,10 +516,10 @@ later, change `INVENTORY_DB_PASSWORD` and redeploy the whole stack: the
 database container sets the new one within a minute. (Postgres itself
 keeps the password it was first made with; the stack's health check puts
 the new one in.) Should that ever not take, removing the stack's
-`postgres-data` volume loses nothing: the database is a copy, and Ferrule
+`postgres-data` volume loses nothing: the database is a copy, and Collimo
 copies every run back in. To use a PostgreSQL you
 run, set `INVENTORY_DB_URL` instead. Set `INVENTORY_DB_READER_PASSWORD`, at
-least 12 characters, and Ferrule makes a read-only `ferrule_reader` role for
+least 12 characters, and Collimo makes a read-only `collimo_reader` role for
 reporting tools to sign in as, so they never hold the writer's password. A
 shorter one is refused: the role is not made, the inventory panel says why,
 and everything else carries on.
@@ -415,13 +528,34 @@ and everything else carries on.
 |---|---|---|
 | `INVENTORY` | `on` | `off` stops the daily run; taking one by hand still works |
 | `INVENTORY_AT` | `02:30` | when the daily run is taken, in `TZ` |
-| `INVENTORY_KEEP` | `365` | days of runs to keep, in Ferrule's files and the database copy alike; `2557` keeps seven years, as SOX asks. The newest two are always kept |
+| `INVENTORY_KEEP` | `365` | days of runs to keep, in Collimo's files and the database copy alike; `2557` keeps seven years, as SOX asks. The newest two are always kept |
 | `INVENTORY_DB_URL` | empty | `postgres://user:password@host:5432/database?sslmode=verify-full` for a PostgreSQL you run |
 | `INVENTORY_DB_PASSWORD` | empty | the writer's password; on its own, the stack's `postgres` profile is used |
-| `INVENTORY_DB_READER_PASSWORD` | empty | at least 12 characters; makes or updates `ferrule_reader`, sent as a SCRAM verifier, never as text |
+| `INVENTORY_DB_READER_PASSWORD` | empty | at least 12 characters; makes or updates `collimo_reader`, sent as a SCRAM verifier, never as text |
 | `INVENTORY_DB_CA` | empty | your CA certificate, PEM, for a server whose certificate it signed; turns on `verify-full` |
 | `INVENTORY_DB_BIND` | `127.0.0.1` | where the bundled database listens on the Docker host; `0.0.0.0` for Power BI on another machine |
 | `INVENTORY_DB_PORT` | `5432` | the bundled database's port on the Docker host |
+
+#### Capacity planning (paid)
+
+Every hypervisor and storage poll is folded into one summary per cluster,
+host, datastore and pool per day (average, 95th percentile, peak and
+capacity), kept for two years in `capacity/` beside the archive, whatever the
+edition. On first start the inventory runs already held seed the disk and
+allocation history. The **Capacity** tab forecasts when each reaches its
+threshold, with a range, and raises `capacity_runway` when that is close.
+
+| Variable | Default | |
+|---|---|---|
+| `CAPACITY_THRESHOLDS` | `cpu=80,mem=80,disk=85,pool=85` | the share of usable capacity, in %, forecasts are for; also `alloc_cpu`, `alloc_mem` and `alloc_disk` against the ratios below (100 by default). `pool` is Ceph and other replicated storage, planned to nearfull |
+| `CAPACITY_RUNWAY` | `warn=90,bad=30` | days left at which a forecast warns, and is critical |
+| `CAPACITY_RATIOS` | `vcpu=4,vmem=1,disk=1.5` | allocation limits: vCPUs per core, VM memory per byte of host memory, provisioned disk per byte |
+| `CAPACITY_VM_SIZE` | `vcpu=4,mem=16,disk=100` | the VM "how many more fit" counts in, memory and disk in GB |
+| `CAPACITY_SUMMARY_TO` | empty | who gets the monthly capacity summary on the 1st, through the SMTP server alert email uses; its own list, not `SMTP_TO` |
+| `CAPACITY_SUMMARY_BY` | empty | a "Prepared by" name on the summary |
+| `CAPACITY_HOST` | empty | the host "What to buy" plans in, such as `cores=64,mem=1024` (memory in GB); empty: each cluster's largest |
+| `CAPACITY_DISK_TBW` | empty | each drive model's rated terabytes written, such as `CT1000P310SSD8=220; Samsung SSD 990 PRO 1TB=600`, for disk wear |
+| `CAPACITY_HA` | empty | hosts kept spare per cluster, such as `Prod=1,lab=0`: usable capacity is then the cluster less its largest hosts |
 
 What Proxmox VE cannot tell a read-only token is left out rather than asked
 for: a VM's IP addresses, partitions and guest OS need the QEMU guest agent
@@ -448,7 +582,7 @@ with the model that gave it.
 **Recommend fixes**, when ticked, asks for a fix for each problem as well:
 steps in order, what carrying them out could disrupt, and how to check it
 worked. Each shows on its finding as a suggested fix, to check before
-running. It is advice: Ferrule runs nothing, and the model is told to give
+running. It is advice: Collimo runs nothing, and the model is told to give
 an exact command or menu path only where it is sure of it.
 
 The assistant is paid, whichever model answers: the trial or a license. When
@@ -486,7 +620,7 @@ anything else is not, with no setting to say otherwise. With sign-in off
 there are no roles, as for everything else.
 
 Each model takes one question at a time; asking one that is busy says so at
-once, and another model can be picked. Every five minutes Ferrule asks each
+once, and another model can be picked. Every five minutes Collimo asks each
 model for its list of models, which costs nothing, and the panel shows
 whether it answered, refused its key, or could not be reached. There is no
 automatic switch to another model: a question goes only where its preview
@@ -498,7 +632,7 @@ said it would.
 so. In **Settings → Stack environment**, each slot is a provider list and
 its fields, and **Move to AI_1**, under the old single-model settings,
 writes the old variables as an `AI_1` line and clears them; paste the key
-into `AI_1_KEY`, since Ferrule never sees it. A slot that cannot be read is shown
+into `AI_1_KEY`, since Collimo never sees it. A slot that cannot be read is shown
 on Settings with the reason and never stops the stack.
 
 **LM Studio:** in the Developer tab, start the server and turn on **Serve on
@@ -508,7 +642,7 @@ The first question reads the whole case file before it answers; on a
 desktop machine that is usually 20 to 60 seconds.
 
 **llama.cpp:** start `llama-server` with `--host 0.0.0.0` so it listens on
-the network, and `--jinja` for the model's own chat template. Ferrule asks
+the network, and `--jinja` for the model's own chat template. Collimo asks
 it for its settings at `/props`, so the panel shows "llama.cpp" with the
 loaded model's name, and the context each question gets, which is `-c`
 divided by the server's parallel slots (`-np`); `context=` is then not
@@ -536,18 +670,27 @@ AI_3_KEY=<from Google AI Studio>
 
 | Name | Default | Meaning |
 |---|---|---|
-| `FERRULE_LICENSE` | empty | a license key, one long line starting `FERRULE1.`. Optional: it can be pasted on Settings instead |
+| `COLLIMO_LICENSE` | empty | a license key, one long line starting `COLLIMO1.`. Optional: it can be pasted on Settings instead |
 
-Without a key, a new install runs a **30-day trial** of the paid features,
-counted from its first start and remembered on the `ledger-data` volume,
-then carries on as **Community**: free for personal use, with everything for
-one site. Settings → License shows the edition, the days left and what is
-paid. Whatever happens to a license, monitoring and alerts never stop: only
-the paid features pause.
+**During the private beta** there is no trial, and a key is required:
+without one in force, Collimo reads nothing, sends no alerts and pushes
+nothing to VictoriaMetrics, and says **Private beta: not watching** above
+every tab. A key that is withdrawn, past its expiry and grace, or
+unconfirmed online for 30 days stops it the same way. The container stays
+healthy, and entering a key starts watching at the next poll.
+
+After launch, a new install without a key runs a **30-day trial** of the
+paid features, counted from its first start and remembered on the
+`ledger-data` volume, then carries on as **Community**: free for personal
+use, with everything for one site. Settings → License shows the edition,
+how long the key is valid (a Business or MSP key can say **Never expires**),
+what it covers, such as *unlimited sites*, and what is paid. After launch,
+whatever happens to a license, monitoring and alerts never stop: only the
+paid features pause.
 
 **Online confirmation.** A key is checked by its signature, on your host.
-Ferrule also fetches a signed list of withdrawn keys once a day, from
-`https://license.ferrulehq.dev/revoked`, so a key that leaks can be
+Collimo also fetches a signed list of withdrawn keys once a day, from
+`https://license.collimo.dev/revoked`, so a key that leaks can be
 withdrawn. The fetch is a plain download: nothing about you, your network
 or your install is sent. A key that has not been
 confirmed for 30 days pauses the paid features until the list can be
@@ -560,8 +703,34 @@ trial and Community have no key, so they never check.
 License and press Apply. It is checked there and then, used at once with no
 restart, and kept on the archive volume as `license.json`, so it travels with
 archive backups and comes back with a restore. **Remove license** takes it
-off again. Each change goes in the audit log. When `FERRULE_LICENSE` is set,
+off again. Each change goes in the audit log. When `COLLIMO_LICENSE` is set,
 it always wins, and the box on Settings is locked.
+
+### Several sites: the hub (MSP, or Business with several offices)
+
+| Name | Default | Meaning |
+|---|---|---|
+| `COLLIMO_ROLE` | `standalone` | `collector` at each site, `hub` for the one that shows them all. `standalone` is one site on its own |
+| `HUB_URL` | empty | on a hub: the address collectors reach it at. It goes into every enrolment code |
+| `HUB_ENROL` | empty | on a collector: the enrolment code made on the hub, used once |
+| `HUB_LINK` | `normal` | `metered` on a cellular or satellite link: the snapshot every 5 minutes instead of every minute |
+
+A **collector** watches its site as a standalone install does, and sends
+what it sees to the hub. It only ever calls out to the hub; nothing
+connects in to a site, and no port opens at the site or in front of the
+hub. Its page is a read-only status page: whether it reaches the hub, what
+is waiting to send, and its alerts. Records made while the hub is
+unreachable wait on the archive volume and go when it is back.
+
+The **hub** polls nothing. It shows every site, sends the notifications
+for all of them, and keeps each site's archive. It needs an MSP license,
+which covers the number of sites the key says. On the hub, **Sites → Add a
+site** makes a one-time enrolment code for each new site: paste it into
+that site's `HUB_ENROL`. A code works once and lasts a day. Every message
+between a collector and the hub is encrypted to the receiver and signed by
+the sender, whatever the route. On a hub, set `RETENTION=400d` to keep
+about 13 months of each site's graphs. The full guide is
+[The hub](https://docs.collimo.dev/msp/hub/).
 
 ### Sign-in
 
@@ -595,7 +764,7 @@ can change their own password on Settings.
 Users travel with archive backups, still encrypted, and **Export settings**
 downloads them as one file to import into another install with the same key.
 `ADMIN_USERNAME` always stays the environment's admin; no local user may take
-its name. Without `ADMIN_PASSWORD`, Ferrule refuses any change that would
+its name. Without `ADMIN_PASSWORD`, Collimo refuses any change that would
 leave no local admin. Adding users and groups needs a license; when one
 lapses, everyone already added keeps signing in, and can still be disabled,
 deleted or given a new password.
@@ -615,13 +784,13 @@ nothing is refused, so pointing OIDC at Google does not let in every Google
 account.
 
 ```
-OIDC_ROLES=ferrule-admins:admin; it-team:operator; @example.com:viewer
-LDAP_ROLES=CN=Ferrule Admins,OU=Groups,DC=corp,DC=example:admin; CN=Helpdesk,OU=Groups,DC=corp,DC=example:viewer
+OIDC_ROLES=collimo-admins:admin; it-team:operator; @example.com:viewer
+LDAP_ROLES=CN=Collimo Admins,OU=Groups,DC=corp,DC=example:admin; CN=Helpdesk,OU=Groups,DC=corp,DC=example:viewer
 ```
 
 | Name | Meaning |
 |---|---|
-| `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_ROLES` | required together. Register Ferrule with your provider as a web application with the redirect URI `<DASHBOARD_URL>/auth/oidc/callback` |
+| `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_ROLES` | required together. Register Collimo with your provider as a web application with the redirect URI `<DASHBOARD_URL>/auth/oidc/callback` |
 | `OIDC_NAME` | the button's label: "Sign in with …" |
 | `OIDC_GROUPS_CLAIM` | where the provider puts groups; default `groups`. Entra ID sends group object IDs there once "groups claim" is turned on for the app |
 | `OIDC_SCOPES` | default `openid profile email`; some providers need `groups` added |
@@ -654,15 +823,15 @@ what notifies per tab and per alert type, and writes the lines to set here.
 | Channel | Variables | Notes |
 |---|---|---|
 | Gotify | `GOTIFY_URL`, `GOTIFY_TOKEN` | your Gotify, or `http://gotify` for the bundled one; an application token |
-| ntfy | `NTFY_URL`, optional `NTFY_TOKEN` | the topic's full URL, e.g. `https://ntfy.sh/my-ferrule-alerts`; on ntfy.sh, pick a topic nobody could guess |
+| ntfy | `NTFY_URL`, optional `NTFY_TOKEN` | the topic's full URL, e.g. `https://ntfy.sh/my-collimo-alerts`; on ntfy.sh, pick a topic nobody could guess |
 | Pushover | `PUSHOVER_TOKEN`, `PUSHOVER_USER` | an application token, and your user or group key |
 | Discord | `DISCORD_WEBHOOK_URL` | Server settings → Integrations → Webhooks |
-| Email | `SMTP_HOST`, `SMTP_FROM`, `SMTP_TO`; optional `SMTP_PORT` (587), `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_TLS` | `SMTP_TO` takes several addresses, comma separated. `SMTP_TLS` is `starttls` (the default), `tls` (the default on port 465) or `none`; a password is never sent unencrypted |
+| Email | `SMTP_HOST`, `SMTP_FROM`, `SMTP_TO`; optional `SMTP_PORT` (587), `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_TLS`, `SMTP_TICKETS` | `SMTP_TO` takes several addresses, comma separated. `SMTP_TLS` is `starttls` (the default), `tls` (the default on port 465) or `none`; a password is never sent unencrypted. `SMTP_TICKETS` is `open` or `all` when `SMTP_TO` is a ticketing system's mailbox: one tag per alert in the subject, so mail rules thread it into one ticket |
 | Slack *(paid)* | `SLACK_WEBHOOK_URL` | an incoming webhook from a Slack app |
 | Microsoft Teams *(paid)* | `TEAMS_WEBHOOK_URL` | a **Workflows** webhook: in the channel, Workflows → "Post to a channel when a webhook request is received". The old Office 365 connector webhooks were retired in 2026 and do not work |
 | PagerDuty *(paid)* | `PAGERDUTY_ROUTING_KEY` | an Events API v2 integration key. Critical alerts only; a clear resolves the incident |
 | Apprise *(paid)* | `APPRISE_URL`, and `APPRISE_URLS` or `APPRISE_KEY` | an apprise-api server, such as the bundled one (`http://apprise:8000`), reaching more than a hundred services. `APPRISE_URLS` lists them as Apprise URLs and travels with each message, so the server keeps nothing; `APPRISE_KEY` names a configuration stored on the server instead |
-| Webhook *(paid)* | `WEBHOOK_URL`, optional `WEBHOOK_SECRET` | JSON for Home Assistant, n8n or anything else; with a secret, `X-Ferrule-Signature` carries `sha256=` and the HMAC of the body |
+| Webhook *(paid)* | `WEBHOOK_URL`, optional `WEBHOOK_SECRET` | JSON for Home Assistant, n8n or anything else; with a secret, `X-Collimo-Signature` carries `sha256=` and the HMAC of the body |
 
 Paid channels send during the trial or with a license. When neither is in
 force they send one message saying they have paused, PagerDuty resolves what
@@ -672,7 +841,7 @@ What notifies, and when, is shared by every channel:
 
 | Name | Default | Meaning |
 |---|---|---|
-| `DASHBOARD_URL` | empty | where tapping a notification goes, e.g. `https://ferrule.example.com` |
+| `DASHBOARD_URL` | empty | where tapping a notification goes, e.g. `https://collimo.example.com` |
 | `NOTIFY_DEFAULT` | `bad` | lowest severity that notifies: `bad`, `warn` or `off` |
 | `NOTIFY_RULES` | empty | overrides by tab or alert type, e.g. `wan=warn port_slow=off` |
 | `NOTIFY_DELAY` | `2m` | only send if still active this long later |
@@ -696,13 +865,20 @@ profile so neither starts unless asked:
 COMPOSE_PROFILES=gotify,igotify     # or just igotify, beside an existing Gotify
 GOTIFY_ADMIN_USER=admin             # the default
 GOTIFY_ADMIN_PASSWORD=<choose one>  # unset, Gotify's admin password is "admin"
+GOTIFY_ALERTS_PASSWORD=<choose one> # the shared account everyone signs in as
 GOTIFY_URL=http://gotify
 GOTIFY_PORT=8091                    # host ports, for a tunnel or proxy to use
 IGOTIFY_PORT=8092
 ```
 
-Deploy once, open Gotify, create an application, put its token in
-`GOTIFY_TOKEN`, and update the stack. iGotify relays to the iPhone app
+The setup wizard writes all of this for you. With `GOTIFY_ALERTS_PASSWORD`
+and no `GOTIFY_TOKEN`, Collimo makes a Gotify account, `collimo-alerts`, and
+its own app in it, the first time it sends. Everyone who should get alerts
+signs in to the Gotify app (or iGotify) as `collimo-alerts`, and the admin
+account stays private. In Gotify an app belongs to one user and only that
+user's phones see it, which is why alerts go to a shared account. For a
+team, ntfy or Pushover groups suit better. To use your own app instead,
+create one in Gotify and set `GOTIFY_TOKEN`. iGotify relays to the iPhone app
 through Apple's push service; the phone has to reach Gotify and iGotify, so
 away from home put them behind a tunnel or reverse proxy. `IGOTIFY_GOTIFY_URLS`,
 `IGOTIFY_CLIENT_TOKENS` and `IGOTIFY_SECNTFY_TOKENS` are only needed when
@@ -715,7 +891,7 @@ and iGotify as their own small stack and point `GOTIFY_URL` at it.
 #### Apprise in this stack
 
 Add `apprise` to `COMPOSE_PROFILES` and the stack runs apprise-api as
-`ferrule-apprise`, on host port `APPRISE_PORT` (8093). Then:
+`collimo-apprise`, on host port `APPRISE_PORT` (8093). Then:
 
 ```
 APPRISE_URL=http://apprise:8000
@@ -725,7 +901,7 @@ APPRISE_URLS=tgram://bottoken/chatid mailto://user:pass@example.com
 Separate several services with spaces. Each service's URL format is in
 Apprise's own documentation.
 
-### Backups
+### Archive copies
 
 The archive (every outage, alert and event the controller forgets, and when
 the trial began) is backed up **daily**, and the history in VictoriaMetrics
@@ -734,13 +910,13 @@ container with an empty archive restores the newest backup by itself**,
 before it starts: rebuild the stack anywhere, point it at the same backups,
 and it comes back as it was. History is re-imported into a VictoriaMetrics
 that holds nothing older than the backup. Restoring is never paid, even from
-S3 after a license ends. Settings → Backups shows each target, what is
-there, and a "Back up now" button.
+S3 after a license ends. Settings → Archive copies shows each target, what is
+there, and a "Copy now" button.
 
 | Name | Default | Meaning |
 |---|---|---|
-| `BACKUP_NAME` | `ferrule` | names this site's backups. Give each site its own when several share a target; a rebuilt site must keep its name to find its backups |
-| `BACKUP_KEY` | empty | encrypts backups (AES-256-GCM). 32 random bytes in base64: `openssl rand -base64 32`, or Settings → Backups → Make a key. **Keep a copy outside the stack**: without it an encrypted backup cannot be restored |
+| `BACKUP_NAME` | `collimo` | names this site's backups. Give each site its own when several share a target; a rebuilt site must keep its name to find its backups |
+| `BACKUP_KEY` | empty | encrypts backups (AES-256-GCM). 32 random bytes in base64: `openssl rand -base64 32`, or Settings → Archive copies → Make a key. **Keep a copy outside the stack**: without it an encrypted backup cannot be restored |
 | `BACKUP_AT` | `03:30` | the time of day, in `TZ` |
 | `BACKUP_HISTORY` | `true` | also back up history, weekly |
 | `BACKUP_HISTORY_DAY` | `sunday` | which day |
@@ -749,7 +925,7 @@ there, and a "Back up now" button.
 | `BACKUP_RESTORE` | `auto` | `off` to never restore by itself |
 
 A backup missed while the stack was down is taken a couple of minutes after
-it comes back. A failed backup raises a "Backup failed" warning, which
+it comes back. A failed backup raises an "Archive copy failed" warning, which
 notifies like any other alert (`NOTIFY_RULES` tab `settings`).
 
 #### To a share (NFS or SMB), free
@@ -793,41 +969,41 @@ needed:
 ```
 BACKUP_S3_ENDPOINT=s3.us-east-1.wasabisys.com
 BACKUP_S3_REGION=us-east-1
-BACKUP_S3_BUCKET=my-ferrule-backups
+BACKUP_S3_BUCKET=my-collimo-backups
 BACKUP_S3_ACCESS_KEY=...
 BACKUP_S3_SECRET_KEY=...
 ```
 
 Backups land in `<bucket>/<BACKUP_S3_PREFIX>/<BACKUP_NAME>/`, with the
-prefix `ferrule` by default. Make the bucket first, and give the key access
+prefix `collimo` by default. Make the bucket first, and give the key access
 to that bucket only: list, read, write and delete. For Wasabi, the endpoint
 and region must match the bucket's region; Backblaze B2 shows its S3 endpoint
-on the bucket's page. Without a license or trial, S3 backups pause and the
+on the bucket's page. Without a license or trial, copies to S3 pause and the
 share carries on; restoring from S3 keeps working. Set `BACKUP_KEY` too:
 these backups leave your network.
 
 ### Reaching it from outside: Cloudflare Tunnel
 
-Ferrule does not ship a tunnel. If you already run `cloudflared`, add public
+Collimo does not ship a tunnel. If you already run `cloudflared`, add public
 hostnames to that tunnel in the Cloudflare dashboard (Zero Trust → Networks →
 Tunnels → your tunnel → Public Hostname):
 
 | Hostname | Service |
 |---|---|
-| `ferrule.example.com` | `http://<docker host>:8090` |
+| `collimo.example.com` | `http://<docker host>:8090` |
 | `gotify.example.com` | `http://<docker host>:8091`, if you run the bundled Gotify |
 | `igotify.example.com` | `http://<docker host>:8092`, if you run the bundled iGotify |
 
 If `cloudflared` runs as a container on the same Docker network, use the
-container names and their internal ports instead: `http://ferrule:8080`,
-`http://ferrule-gotify:80`, `http://ferrule-igotify:8080`.
+container names and their internal ports instead: `http://collimo:8080`,
+`http://collimo-gotify:80`, `http://collimo-igotify:8080`.
 
 Turn on sign-in (above) before the dashboard goes on a tunnel, or put it
 behind Cloudflare Access (an Access application with a policy for your own
 email), or both. Gotify and
 iGotify must stay reachable by the phone apps, which cannot pass an Access
 login; Gotify has its own, and iGotify only relays. Then set
-`DASHBOARD_URL=https://ferrule.example.com` so tapping a notification opens
+`DASHBOARD_URL=https://collimo.example.com` so tapping a notification opens
 it.
 
 ### Deploying from someone else's private repo
@@ -861,8 +1037,8 @@ If your Portainer has no Additional paths field, merge the overlay's
 
 ### Running beside an existing stack
 
-This compose file names its containers `ferrule` and
-`ferrule-victoria-metrics`, on port 8090, so it can run on
+This compose file names its containers `collimo` and
+`collimo-victoria-metrics`, on port 8090, so it can run on
 the same Docker host as an earlier deployment of this project. Set
 `UNIFI_ENABLED=false` on it while you try it, or both stacks will poll the
 same controller.
@@ -892,6 +1068,27 @@ container keeps `cap_drop: ALL`. If the sysctl does not survive your
 deployment the dashboard says the probe is unavailable and nothing else
 changes.
 
+### Up-checks
+
+For anything Collimo cannot read, it can still say whether it answers.
+`CHECKS` holds the entries, separated by `;`:
+
+```
+CHECKS=ping 192.168.1.20 name=printer; http https://nas.lab:5001 name=nas; tcp 10.0.0.5:22 name=build-ssh
+```
+
+- `ping <host>`: one echo, through the same unprivileged ICMP socket as the
+  probe. Where that socket cannot open, the check says it is unavailable.
+- `http <URL>`: up on any 2xx or 3xx; `expect=200` asks for exactly one
+  status. The certificate is not checked unless you add `tls=verify`.
+- `tcp <host:port>`: up when the port accepts a connection.
+
+Each also takes `name=` (the target by default), `every=` (`30s`, at least
+`10s`) and `timeout=` (`5s`). A check is down after three failures in a row
+and up after one success; it raises `check_down` on the LAN tab and is kept
+as an offline span on the outage timeline. A bad entry is logged, left out
+and listed under Settings → Sources; the rest still run.
+
 ---
 
 ## Step 5 — Turn on GitOps updates
@@ -914,7 +1111,7 @@ download.
 
 ## Versions and updates
 
-`FERRULE_VERSION` says which release runs, and nothing changes until you
+`COLLIMO_VERSION` says which release runs, and nothing changes until you
 change it: set the new version in the stack's variables and update the
 stack. `qa` is the build under test, and moves: every redeploy picks up
 the newest. Releases are built for Intel/AMD and ARM, so the same version
@@ -924,9 +1121,9 @@ runs on a NAS or a Raspberry Pi.
 
 For development, or to try a branch before it is released, add
 `docker-compose.build.yml` under the stack's Git settings, **Additional
-paths**. It builds Ferrule from the repository on the Docker host, tagged
-`ferrule-local:latest` so a build never stands in for a pulled release, and
-rebuilds on every redeploy. `FERRULE_VERSION` is still required; any value,
+paths**. It builds Collimo from the repository on the Docker host, tagged
+`collimo-local:latest` so a build never stands in for a pulled release, and
+rebuilds on every redeploy. `COLLIMO_VERSION` is still required; any value,
 such as `dev`, will do. The host then needs to pull `golang:1.24-alpine`
 too.
 
@@ -940,7 +1137,7 @@ seconds to report healthy — that is the healthcheck's start period.
 Container logs on a healthy start:
 
 ```
-ferrule gitops listening on :8080, polling https://192.168.1.1 every 30s, and 2 source(s)
+collimo gitops listening on :8080, polling https://192.168.1.1 every 30s, and 2 source(s)
 ```
 
 Silence after that is correct. The collector logs failures and state
@@ -973,7 +1170,7 @@ Dashboard: `http://<docker-host>:8090`.
 
 ## From here on
 
-To move to a new release, change `FERRULE_VERSION` and update the stack.
+To move to a new release, change `COLLIMO_VERSION` and update the stack.
 With GitOps updates on, a change to the compose file in the repository
 redeploys on its own, with a webhook or within the polling interval, or on
 **Pull and redeploy**.
@@ -985,16 +1182,16 @@ variables in Portainer and update the stack.
 
 ## Troubleshooting
 
-**`set FERRULE_VERSION to the release to run`.** The stack has no
-`FERRULE_VERSION`. Add it, such as `FERRULE_VERSION=0.9.0`, and update the
+**`set COLLIMO_VERSION to the release to run`.** The stack has no
+`COLLIMO_VERSION`. Add it, such as `COLLIMO_VERSION=0.9.0`, and update the
 stack.
 
-**`pull access denied` or `unauthorized` pulling the Ferrule image.** Check
-`FERRULE_IMAGE`: the image is public, so a pull needs no login, and this
+**`pull access denied` or `unauthorized` pulling the Collimo image.** Check
+`COLLIMO_IMAGE`: the image is public, so a pull needs no login, and this
 usually means a mistyped address.
 
-**`manifest unknown` pulling the Ferrule image.** No release has that
-version. Check `FERRULE_VERSION` for a typo.
+**`manifest unknown` pulling the Collimo image.** No release has that
+version. Check `COLLIMO_VERSION` for a typo.
 
 **`configuration: UNIFI_HOST is required`.** The stack variables did not
 reach the container. Confirm they are saved under the stack, then update it.
@@ -1012,14 +1209,14 @@ reuse the gateway's credentials. Add `PROTECT_API_KEY`, or
 
 **The dashboard says the archive is NOT persisted, with `permission denied`.**
 The `ledger-data` volume was created before the image shipped its own
-`/var/lib/ferrule` directory. Docker creates a mountpoint as root when
+`/var/lib/collimo` directory. Docker creates a mountpoint as root when
 the path does not exist in the image, and the collector runs as uid 65534, so
 it can never write there. Redeploy on a build that includes the fix, and if the
 message survives that, remove the volume so Docker re-seeds it from the image:
 
 ```sh
 docker compose down
-docker volume rm ferrule_ledger-data
+docker volume rm collimo_ledger-data
 docker compose up -d
 ```
 

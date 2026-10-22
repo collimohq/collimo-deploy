@@ -4,7 +4,7 @@
 #
 #   BACKUP_SMB_SERVER=192.168.1.20      the server
 #   BACKUP_SMB_SHARE=backups            the share
-#   BACKUP_SMB_USERNAME=ferrule         an account that can write to it
+#   BACKUP_SMB_USERNAME=collimo         an account that can write to it
 #   BACKUP_SMB_PASSWORD=...             its password; no commas
 #   BACKUP_SMB_VERSION=3.0              optional
 #

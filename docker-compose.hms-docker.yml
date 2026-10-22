@@ -12,7 +12,7 @@
 #   IGOTIFY_HOSTNAME=igotify.example.com    (only with COMPOSE_PROFILES igotify)
 #   TRAEFIK_MIDDLEWARES=internal-ipallowlist@file   (the default)
 #
-# Router names carry a ferrule- prefix so they never collide with routers an
+# Router names carry a collimo- prefix so they never collide with routers an
 # existing Gotify on the same Traefik already uses.
 #
 # Each container sits on two networks, its stack's own and the proxy one, so
@@ -36,9 +36,9 @@ services:
       TRAEFIK_MIDDLEWARES: ${TRAEFIK_MIDDLEWARES:-internal-ipallowlist@file}
     labels:
       - traefik.enable=true
-      - traefik.http.services.ferrule.loadbalancer.server.url=http://ferrule:8080
-      - traefik.http.routers.ferrule.rule=Host(`${TELEMETRY_HOSTNAME:-telemetry.localhost}`)
-      - traefik.http.routers.ferrule.middlewares=${TRAEFIK_MIDDLEWARES:-internal-ipallowlist@file}
+      - traefik.http.services.collimo.loadbalancer.server.url=http://collimo:8080
+      - traefik.http.routers.collimo.rule=Host(`${TELEMETRY_HOSTNAME:-telemetry.localhost}`)
+      - traefik.http.routers.collimo.middlewares=${TRAEFIK_MIDDLEWARES:-internal-ipallowlist@file}
 
   gotify:
     networks:
@@ -46,9 +46,9 @@ services:
       - hms-docker_proxy_net
     labels:
       - traefik.enable=true
-      - traefik.http.services.ferrule-gotify.loadbalancer.server.url=http://ferrule-gotify:80
-      - traefik.http.routers.ferrule-gotify.rule=Host(`${GOTIFY_HOSTNAME:-gotify.localhost}`)
-      - traefik.http.routers.ferrule-gotify.middlewares=${TRAEFIK_MIDDLEWARES:-internal-ipallowlist@file}
+      - traefik.http.services.collimo-gotify.loadbalancer.server.url=http://collimo-gotify:80
+      - traefik.http.routers.collimo-gotify.rule=Host(`${GOTIFY_HOSTNAME:-gotify.localhost}`)
+      - traefik.http.routers.collimo-gotify.middlewares=${TRAEFIK_MIDDLEWARES:-internal-ipallowlist@file}
 
   igotify:
     networks:
@@ -56,9 +56,9 @@ services:
       - hms-docker_proxy_net
     labels:
       - traefik.enable=true
-      - traefik.http.services.ferrule-igotify.loadbalancer.server.url=http://ferrule-igotify:8080
-      - traefik.http.routers.ferrule-igotify.rule=Host(`${IGOTIFY_HOSTNAME:-igotify.localhost}`)
-      - traefik.http.routers.ferrule-igotify.middlewares=${TRAEFIK_MIDDLEWARES:-internal-ipallowlist@file}
+      - traefik.http.services.collimo-igotify.loadbalancer.server.url=http://collimo-igotify:8080
+      - traefik.http.routers.collimo-igotify.rule=Host(`${IGOTIFY_HOSTNAME:-igotify.localhost}`)
+      - traefik.http.routers.collimo-igotify.middlewares=${TRAEFIK_MIDDLEWARES:-internal-ipallowlist@file}
 
 networks:
   hms-docker_proxy_net:

@@ -1,0 +1,47 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:ec368b99-dd5d-4021-bd47-4bd6e7cd2d00",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-10-22T17:26:30Z",
+    "component": {
+      "type": "container",
+      "bom-ref": "collimo-image",
+      "name": "collimo",
+      "version": "0.1.0",
+      "purl": "pkg:oci/collimo@0.1.0?repository_url=ghcr.io/collimohq/collimo&arch=amd64",
+      "properties": [{"name": "base-image", "value": "scratch"}]
+    }
+  },
+  "components": [
+    {
+      "type": "application",
+      "bom-ref": "collimo",
+      "name": "collimo",
+      "version": "0.1.0",
+      "description": "The Collimo collector, a static linux/amd64 binary",
+      "purl": "pkg:generic/collimohq/collimo@0.1.0?arch=amd64"
+    },
+    {
+      "type": "library",
+      "bom-ref": "golang-stdlib",
+      "name": "stdlib",
+      "version": "1.24.13",
+      "description": "The Go standard library, compiled into the binary",
+      "purl": "pkg:golang/stdlib@1.24.13"
+    },
+    {
+      "type": "data",
+      "bom-ref": "ca-bundle",
+      "name": "ca-certificates-bundle",
+      "version": "20251003-r0",
+      "description": "The CA certificate bundle at /etc/ssl/certs/ca-certificates.crt",
+      "purl": "pkg:apk/alpine/ca-certificates-bundle@20251003-r0?distro=alpine-3.23.3"
+    }
+  ],
+  "dependencies": [
+    {"ref": "collimo-image", "dependsOn": ["collimo", "ca-bundle"]},
+    {"ref": "collimo", "dependsOn": ["golang-stdlib"]}
+  ]
+}
