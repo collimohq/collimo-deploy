@@ -25,7 +25,7 @@ services:
     # host.
     # Each release writes its own version and registry in as the defaults,
     # so a blank stack runs it.
-    image: ${COLLIMO_IMAGE:-ghcr.io/collimohq/collimo}:${COLLIMO_VERSION:-0.1.1}
+    image: ${COLLIMO_IMAGE:-ghcr.io/collimohq/collimo}:${COLLIMO_VERSION:-0.1.2}
     # Ask the registry on every deploy. A fixed release costs one quick
     # request; qa moves, and this is how a redeploy picks it up.
     pull_policy: always

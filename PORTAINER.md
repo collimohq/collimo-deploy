@@ -208,7 +208,7 @@ usage, and you tune them there. **Acknowledging an alarm in vCenter clears it
 in Collimo.** Alarms already open when the collector starts are not sent as
 notifications.
 
-#### XCP-ng, through Xen Orchestra
+#### XCP-ng, through Xen Orchestra (preview)
 
 XCP-ng 8.3, read through Xen Orchestra's REST API: XCP-ng itself has no
 read-only account. One slot is one Xen Orchestra, and every pool it manages
@@ -424,8 +424,8 @@ Each UPS is a panel on the **Power and servers** tab. Alerts: on battery
 (`ups_on_battery`) and battery low or depleted (`ups_battery_low`) are bad;
 battery needs replacing (`ups_battery_replace`, from the UPS's own alarm)
 and 90% load or more (`ups_overload`) are warnings; ten minutes of runtime
-or less is a warning and five or less is bad (`ups_runtime_low`). PDUs are
-not read: each maker's speaks its own MIB.
+or less is a warning and five or less is bad (`ups_runtime_low`). APC,
+Raritan and Eaton PDUs are read too, and sit on the same tab.
 
 #### Servers, over Redfish
 
@@ -460,7 +460,7 @@ and PowerSubsystem says so on its panel.
 
 ### Inventory reports
 
-With a vCenter or Proxmox VE slot, the Virtualization tab has an
+With a vCenter, Proxmox VE or XCP-ng slot, the Virtualization tab has an
 **Inventory** panel: every machine, disk, network card, guest partition,
 snapshot, host, datastore and cluster, downloadable as **Excel**, a zip of
 **CSV** files (one per sheet), or a single **HTML** page that needs nothing
@@ -723,8 +723,8 @@ is waiting to send, and its alerts. Records made while the hub is
 unreachable wait on the archive volume and go when it is back.
 
 The **hub** polls nothing. It shows every site, sends the notifications
-for all of them, and keeps each site's archive. It needs an MSP license,
-which covers the number of sites the key says. On the hub, **Sites → Add a
+for all of them, and keeps each site's archive. It needs an MSP license, or a
+Business license for several offices, which covers the number of sites the key says. On the hub, **Sites → Add a
 site** makes a one-time enrolment code for each new site: paste it into
 that site's `HUB_ENROL`. A code works once and lasts a day. Every message
 between a collector and the hub is encrypted to the receiver and signed by
@@ -1143,7 +1143,7 @@ collimo gitops listening on :8080, polling https://192.168.1.1 every 30s, and 2 
 Silence after that is correct. The collector logs failures and state
 changes only.
 
-Do not try to open a **Console** on the `telemetry` container — the image is
+Do not try to open a **Console** on the `collimo` container — the image is
 `scratch` and has no shell. Check from the host instead:
 
 ```sh
@@ -1155,7 +1155,7 @@ You want `"network_ok":true` and `"protect_ok":true`.
 Then confirm the interesting metrics are populated:
 
 ```sh
-curl -s http://localhost:8090/metrics | grep -E 'fan_level|sfp_receive_power|protect_disk'
+curl -s http://localhost:8090/metrics | grep -E 'fan_level|sfp_receive_power|nvr_disk'
 ```
 
 Empty SFP results are worth interpreting rather than debugging. Your USW
@@ -1237,5 +1237,6 @@ in the way.
 reading stays on screen marked stale rather than blanking — that is
 deliberate.
 
-**Port detail says history unavailable.** VictoriaMetrics has not
-accumulated enough yet. The six-hour view fills in over six hours.
+**Port detail says history unavailable.** VictoriaMetrics can't be
+reached. A new install shows *Not enough history yet* instead, and the
+six-hour view fills in over six hours.

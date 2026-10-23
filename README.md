@@ -19,7 +19,7 @@ I line it up. A collimator is the part of an optical instrument that lines the l
 
 - **What the vendor screens bury:** fan speeds, per-port errors, SFP optics, PoE draw, temperatures, NVR disk health.
 - **An outage record that outlives the controller,** with the evidence for whose fault it was.
-- **Hypervisors and storage on the same page:** vCenter, Proxmox VE and Ceph, PBS, Synology, QNAP, TrueNAS.
+- **Hypervisors and storage on the same page:** vCenter, Proxmox VE and Ceph, XCP-ng (preview), PBS, Synology, QNAP, TrueNAS.
 - **Other makers' gear too:** managed switches, UPSes and PDUs over SNMP, servers through their BMC over Redfish, and an up-check for anything with an address.
 - **Alerts that mean something now,** not counters from two years ago.
 - **Two containers, nothing built on your host,** set up from a wizard in the browser.
@@ -51,6 +51,7 @@ I line it up. A collimator is the part of an optical instrument that lines the l
 | **UniFi Network** | Fan speeds, temperatures, per-port errors and link speeds, SFP optics, PoE draw, Wi-Fi radios and the channel plan, both WAN links, the cable modem, speed tests, outage history | [Guide](https://docs.collimo.dev/connect/unifi-network/) |
 | **UniFi Protect** | Every camera's state, the recorder's disks and their health, its CPU temperature, each camera's throughput | [Guide](https://docs.collimo.dev/connect/unifi-protect/) |
 | **VMware vCenter and ESXi** | Hosts, maintenance mode, CPU, memory, ESXi build; datastores; VM power state and the busiest VMs; vCenter's alarms | [Guide](https://docs.collimo.dev/connect/vcenter/) |
+| **XCP-ng** (preview, through Xen Orchestra) | Every pool's hosts, storage repositories, the busiest VMs, and Xen Orchestra's alarms | [Guide](https://docs.collimo.dev/connect/xcpng/) |
 | **Proxmox VE and Ceph** | Nodes, quorum, storage use, guests and the busiest of them, Ceph health | [Guide](https://docs.collimo.dev/connect/proxmox/) |
 | **Proxmox Backup Server** | The backup server's health and capacity: datastore use and its own fill estimate, the past week's jobs, when each machine was last backed up | [Guide](https://docs.collimo.dev/connect/pbs/) |
 | **Synology DSM** | Model, DSM version, CPU, memory, temperature; volumes and RAID; drives and their SMART verdicts | [Guide](https://docs.collimo.dev/connect/synology/) |
@@ -185,4 +186,4 @@ Every image carries its software bill of materials (CycloneDX) at `/sbom.cdx.jso
 
 Collimo and the Collimo logo are trademarks of COLLIMO LLC. © 2026 COLLIMO LLC. All rights reserved.
 
-UniFi, UniFi Protect and UniFi OS are trademarks of Ubiquiti Inc. VMware, vCenter and ESXi are trademarks of Broadcom Inc. and its subsidiaries; Proxmox of Proxmox Server Solutions GmbH; Synology, QNAP, TrueNAS and the other products named here of their respective owners. They are named only to describe what Collimo reads from, runs on, or sends to. Collimo is an independent project and is not affiliated with, sponsored by, or endorsed by any of them. See [LICENSE](LICENSE) for the terms.
+UniFi, UniFi Protect and UniFi OS are trademarks of Ubiquiti Inc. VMware, vCenter and ESXi are trademarks of Broadcom Inc. and its subsidiaries; XCP-ng and Xen Orchestra of Vates SAS; Proxmox of Proxmox Server Solutions GmbH; Synology, QNAP, TrueNAS and the other products named here of their respective owners. They are named only to describe what Collimo reads from, runs on, or sends to. Collimo is an independent project and is not affiliated with, sponsored by, or endorsed by any of them. See [LICENSE](LICENSE) for the terms.
