@@ -25,7 +25,7 @@ services:
     # host.
     # Each release writes its own version and registry in as the defaults,
     # so a blank stack runs it.
-    image: ${COLLIMO_IMAGE:-ghcr.io/collimohq/collimo}:${COLLIMO_VERSION:-0.1.2}
+    image: ${COLLIMO_IMAGE:-ghcr.io/collimohq/collimo}:${COLLIMO_VERSION:-0.2.0}
     # Ask the registry on every deploy. A fixed release costs one quick
     # request; qa moves, and this is how a redeploy picks it up.
     pull_policy: always
@@ -102,11 +102,19 @@ services:
       SOURCE_7_SECRET: ${SOURCE_7_SECRET:-}
       SOURCE_8: ${SOURCE_8:-}
       SOURCE_8_SECRET: ${SOURCE_8_SECRET:-}
+      # The last-backup check leaves out VMs with this Proxmox VE or XCP-ng
+      # tag, and VMs named in COVERAGE_SKIP (commas; * matches any run).
+      COVERAGE_SKIP_TAG: ${COVERAGE_SKIP_TAG:-nobackup}
+      COVERAGE_SKIP: ${COVERAGE_SKIP:-}
 
       # Up-checks: ping, HTTP or a TCP port for anything with an address,
       # entries separated by ; such as
       #   CHECKS=ping 192.168.1.20 name=printer; http https://nas.lab:5001 name=nas
       CHECKS: ${CHECKS:-}
+
+      # The Tools tab's port scan reaches private addresses only; this can
+      # narrow it to some of them, such as 192.168.1.0/24.
+      TOOLS_SCAN_NETWORKS: ${TOOLS_SCAN_NETWORKS:-}
 
       # Sign-in. Off until ADMIN_PASSWORD (free) or OIDC_* / LDAP_* (paid)
       # are set. See PORTAINER.md.
@@ -142,8 +150,13 @@ services:
       # own.
       COLLIMO_ROLE: ${COLLIMO_ROLE:-standalone}
       HUB_URL: ${HUB_URL:-}
-      HUB_ENROL: ${HUB_ENROL:-}
+      HUB_ENROLL: ${HUB_ENROLL:-}
       HUB_LINK: ${HUB_LINK:-normal}
+      # On a collector with the Tailscale sidecar: http://tailscale:1055,
+      # for its link to a hub on the tailnet. Nothing else goes through it.
+      HUB_PROXY: ${HUB_PROXY:-}
+      # The Tailscale sidecar's name, only so Settings can show it.
+      TS_HOSTNAME: ${TS_HOSTNAME:-collimo}
 
       # Notification channels. Each is off until its variables are set; any
       # number can be on. Slack, Teams, PagerDuty and the webhook are paid.
@@ -222,6 +235,7 @@ services:
       # the host "What to buy" plans in (empty: each cluster's largest).
       CAPACITY_SUMMARY_TO: ${CAPACITY_SUMMARY_TO:-}
       CAPACITY_SUMMARY_BY: ${CAPACITY_SUMMARY_BY:-}
+      CAPACITY_CURRENCY: ${CAPACITY_CURRENCY:-}
       CAPACITY_HOST: ${CAPACITY_HOST:-}
       # Rated endurance per drive model, for disk wear: CT1000P310SSD8=220
       CAPACITY_DISK_TBW: ${CAPACITY_DISK_TBW:-}
@@ -315,8 +329,10 @@ services:
         max-file: "3"
 
   victoria-metrics:
-    # Pin to a release tag once you have one you are happy with.
-    image: victoriametrics/victoria-metrics:latest
+    # Pinned, like Collimo itself, so a redeploy never pulls a release we
+    # haven't run. It moves forward with a Collimo release, never back:
+    # VictoriaMetrics supports upgrading its data, not downgrading it.
+    image: victoriametrics/victoria-metrics:v1.155.0
     container_name: collimo-victoria-metrics
     restart: unless-stopped
     command:
@@ -458,6 +474,57 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  # ---- Optional: Tailscale, to reach Collimo on your tailnet ------------
+  #
+  # Starts only with "tailscale" in COMPOSE_PROFILES, and TS_AUTHKEY set to
+  # an auth key from Tailscale's admin console (Settings → Keys); tag it so
+  # the device never expires. It joins the tailnet as TS_HOSTNAME and
+  # serves the dashboard at https://<TS_HOSTNAME>.<your tailnet>.ts.net,
+  # with no port open on the router. On a hub, that is HUB_URL. It also
+  # offers a proxy on :1055, which a collector's link to that hub uses
+  # through HUB_PROXY=http://tailscale:1055.
+  #
+  # Userspace networking: no tun device and no added capabilities. The
+  # dashboard is served over HTTPS when the tailnet has HTTPS certificates
+  # turned on (Tailscale admin → DNS), and over plain HTTP on port 80
+  # otherwise, which WireGuard still encrypts.
+  tailscale:
+    profiles: ["tailscale"]
+    image: tailscale/tailscale:stable
+    container_name: collimo-tailscale
+    hostname: tailscale
+    restart: unless-stopped
+    environment:
+      # Under containerboot's other name for it, so the key is never
+      # passed to Collimo itself.
+      TS_AUTH_KEY: ${TS_AUTHKEY:-}
+      TS_HOSTNAME: ${TS_HOSTNAME:-collimo}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_SOCKET: /var/run/tailscale/tailscaled.sock
+      TS_USERSPACE: "true"
+      TS_OUTBOUND_HTTP_PROXY_LISTEN: ":1055"
+    # containerboot starts tailscaled and logs in; once it is up, the
+    # dashboard is served on the tailnet, set afresh on every start. Each
+    # try is timed: with Serve off for the tailnet, tailscale waits for
+    # someone to turn it on, and the proxy must not wait with it.
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        /usr/local/bin/containerboot &
+        boot=$$!
+        until tailscale status >/dev/null 2>&1; do kill -0 $$boot 2>/dev/null || exit 1; sleep 2; done
+        # Status answers from the cached map before control does; HTTPS asked
+        # for then fails at once. Wait up to a minute for the tailnet's
+        # certificate domain, then serve afresh: HTTPS with it, HTTP without.
+        i=0; until tailscale status --json 2>/dev/null | grep -q '"CertDomains": \['; do i=$$((i+1)); [ $$i -ge 30 ] && break; sleep 2; done
+        tailscale serve reset >/dev/null 2>&1
+        if [ $$i -lt 30 ]; then timeout 30 tailscale serve --bg --https=443 http://telemetry:8080; else echo 'collimo: HTTPS certificates are off for this tailnet (Tailscale admin -> DNS); serving plain HTTP'; false; fi || timeout 30 tailscale serve --bg --http=80 http://telemetry:8080 || echo 'collimo: could not serve on the tailnet; is Serve allowed for it?'
+        wait $$boot
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+    security_opt:
+      - no-new-privileges:true
+
 volumes:
   vm-data:
   ledger-data:
@@ -465,3 +532,4 @@ volumes:
   igotify-data:
   apprise-config:
   postgres-data:
+  tailscale-state:

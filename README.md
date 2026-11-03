@@ -11,7 +11,7 @@ I line it up. A collimator is the part of an optical instrument that lines the l
 
 [![Release](https://img.shields.io/github/v/release/collimohq/collimo-deploy?label=release)](https://github.com/collimohq/collimo-deploy/releases)
 [![Image](https://img.shields.io/badge/image-ghcr.io%2Fcollimohq%2Fcollimo-blue)](https://github.com/orgs/collimohq/packages)
-[![Platforms](https://img.shields.io/badge/platforms-amd64%20%7C%20arm64-lightgrey)](#what-you-need)
+[![Platforms](https://img.shields.io/badge/platforms-amd64%20%7C%20arm64-lightgray)](#what-you-need)
 [![Docs](https://img.shields.io/badge/docs-docs.collimo.dev-informational)](https://docs.collimo.dev)
 [![Status](https://img.shields.io/badge/status-private%20beta-orange)](#help-and-feedback)
 
@@ -57,7 +57,7 @@ I line it up. A collimator is the part of an optical instrument that lines the l
 | **Synology DSM** | Model, DSM version, CPU, memory, temperature; volumes and RAID; drives and their SMART verdicts | [Guide](https://docs.collimo.dev/connect/synology/) |
 | **QNAP** (SNMPv3) | CPU, memory, temperatures and fans; disks and M.2 drives; storage pools | [Guide](https://docs.collimo.dev/connect/qnap/) |
 | **TrueNAS** | Pools, disk read, write and checksum errors, temperatures, TrueNAS's own alerts | [Guide](https://docs.collimo.dev/connect/truenas/) |
-| **Managed switches** (SNMP) | Cisco, Juniper, Aruba, MikroTik and others: ports, speeds, errors, VLANs, temperatures and fans, LLDP neighbours; on Cisco and Juniper also CPU, memory, power supplies, optics and chassis alarms | [Guide](https://docs.collimo.dev/connect/snmp-switches/) |
+| **Managed switches** (SNMP) | Cisco, Juniper, Aruba, MikroTik and others: ports, speeds, errors, VLANs, temperatures and fans, LLDP neighbors; on Cisco and Juniper also CPU, memory, power supplies, optics and chassis alarms | [Guide](https://docs.collimo.dev/connect/snmp-switches/) |
 | **UPS** (SNMP) | On mains or battery, charge, runtime left, load, voltages, battery alarms | [Guide](https://docs.collimo.dev/connect/ups/) |
 | **PDUs** (SNMP) | APC, Raritan and Eaton: draw against the rating, banks, and each outlet | [Guide](https://docs.collimo.dev/connect/pdu/) |
 | **Servers** (Redfish) | Dell iDRAC, HPE iLO, Supermicro, Lenovo XCC: health, temperatures, fans, power supplies, drives | [Guide](https://docs.collimo.dev/connect/redfish/) |
@@ -69,7 +69,7 @@ No UniFi? Collimo can watch only your servers and storage. See [Watching without
 <table>
 <tr>
 <td width="50%"><img src="https://docs.collimo.dev/images/faceplate.png" alt="A switch drawn as its front panel"><br><sub><b>The front panel.</b> Odd ports on top, even below, SFP cages to the right, each lit for its speed. A red outline means errors climbing now; a dashed amber one, slower than that port has run.</sub></td>
-<td width="50%"><img src="https://docs.collimo.dev/images/docsis.png" alt="The cable modem"><br><sub><b>The modem.</b> Why it last re-initialised, and whether it rebooted through an outage.</sub></td>
+<td width="50%"><img src="https://docs.collimo.dev/images/docsis.png" alt="The cable modem"><br><sub><b>The modem.</b> Why it last re-initialized, and whether it rebooted through an outage.</sub></td>
 </tr>
 <tr>
 <td width="50%"><img src="https://docs.collimo.dev/images/outage-ledger.png" alt="The outage ledger"><br><sub><b>The outage ledger.</b> Every outage, its cause, and availability with how much of the window the archive covers.</sub></td>

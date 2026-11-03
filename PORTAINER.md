@@ -129,7 +129,10 @@ Add these only if you need them:
 | `POLL_INTERVAL` | `30s` | values below `10s` are clamped |
 | `REQUEST_TIMEOUT` | `20s` | how long one request to a console may take |
 | `UNIFI_SITE` | `default` | you renamed your site |
+| `COVERAGE_SKIP_TAG` | `nobackup` | a Proxmox VE or XCP-ng tag that leaves a VM out of the last-backup check |
+| `COVERAGE_SKIP` | empty | VMs left out of the last-backup check by name, separated by commas; `*` matches any run of characters |
 | `PORT_SLEEPS` | empty | switch ports whose computer sleeps, as `mac/port` separated by commas: a drop to 100 Mb/s or lower there is expected. The slow-link alert's button writes it |
+| `TOOLS_SCAN_NETWORKS` | empty | narrows where the Tools tab's port scan may go, such as `192.168.1.0/24, 10.20.0.0/16`. Empty, any private address (10/8, 172.16/12, 192.168/16); a network outside those is left out, never added |
 | `UNIFI_OS` | `true` | `false` for a self-hosted standalone controller |
 | `UNIFI_VERIFY_TLS` | `false` | you installed a trusted cert on the console |
 | `PROTECT_ENABLED` | `true` | `false` if you do not run Protect |
@@ -300,6 +303,60 @@ has not backed up in a while is highlighted on the page (26 hours by
 default, under Settings → Highlighting) but not alerted on, because a guest
 that was deleted keeps its old group forever.
 
+#### Veeam Backup & Replication
+
+B&R 12 or later, read through the REST API the backup server itself serves
+on port 9419. In the Veeam console, under **Users and Roles**, add a Windows
+or local account with the **Veeam Backup Viewer** role. It must not have MFA:
+Veeam's REST API can't sign in an account that has it, and Veeam's own
+advice is a service account without.
+
+```
+SOURCE_6=veeam https://veeam01.lab:9419 name=veeam1 user=LAB\collimo
+SOURCE_6_SECRET=<its password>
+```
+
+What it reads: every job's last result and next run, every repository's
+size and free space, and every machine Veeam holds backups of with its
+newest restore point. Those last ones are one request per machine, so they
+are read once an hour. The Viewer role can't read the server's version, so
+the panel shows the newest API revision the server takes and the release it
+came with.
+
+Alerts: a job whose last run failed is bad, one with warnings a warning
+(`backup_task`); a disabled job is never judged. A repository Veeam reports
+offline (`storage_offline`), or nearly full (`storage_full`).
+
+#### HYCU (preview)
+
+Read through the REST API the HYCU controller serves on port 8443. HYCU
+publishes no API reference, so the fields come from its user guide; if
+something reads wrong, the panel and Settings → Diagnostics show what came
+back. Give an account the **Viewer** role in the **Infrastructure** group (a
+Self-service group sees no targets), then make it an **API key** from the
+user menu. With two-factor sign-in on, a key is the only way in.
+
+```
+SOURCE_7=hycu https://hycu01.lab:8443 name=hycu1
+SOURCE_7_SECRET=<the API key>
+```
+
+Or, without a key, `user=` on the line and the password as the secret.
+Alerts: a job that ended in error (`backup_task`), a policy HYCU itself
+judges out of compliance (`backup_policy`), and a target that is unhealthy
+or nearly full.
+
+#### Last backup per VM
+
+With any of Proxmox Backup Server, Veeam or HYCU read, the Virtualization
+tab lists every VM on vCenter, Proxmox VE and XCP-ng with its last backup,
+from whichever of them holds it. Older than two days warns, older than a
+week or none at all is critical (`vm_backup`). A VM on a platform no backup
+server Collimo reads answers for says **not checked**, never "no backup".
+Left out: templates, VMs that haven't run in 30 days, VMs tagged
+`COVERAGE_SKIP_TAG` (`nobackup` unless set) in Proxmox VE or XCP-ng, and VMs
+named in `COVERAGE_SKIP`, such as `build01, test-*`.
+
 #### Synology DSM
 
 In **Control Panel → User & Group**:
@@ -374,7 +431,7 @@ temperature; and TrueNAS's alert list. Like vCenter, TrueNAS's own alerts
 are the alerts (`nas_alert`): each one not dismissed, WARNING as a warning
 and ERROR or worse as bad. **Dismissing it in TrueNAS clears it here.**
 
-TrueNAS 25.04 marked the REST API this uses as deprecated, in favour of
+TrueNAS 25.04 marked the REST API this uses as deprecated, in favor of
 JSON-RPC over a WebSocket. It still answers through 25.10; if a later
 release drops it, the slot will say so.
 
@@ -553,6 +610,7 @@ threshold, with a range, and raises `capacity_runway` when that is close.
 | `CAPACITY_VM_SIZE` | `vcpu=4,mem=16,disk=100` | the VM "how many more fit" counts in, memory and disk in GB |
 | `CAPACITY_SUMMARY_TO` | empty | who gets the monthly capacity summary on the 1st, through the SMTP server alert email uses; its own list, not `SMTP_TO` |
 | `CAPACITY_SUMMARY_BY` | empty | a "Prepared by" name on the summary |
+| `CAPACITY_CURRENCY` | USD | the currency the VMware exit report quotes in: USD, GBP, EUR, CAD, INR, BRL or AUD (its form can pick another) |
 | `CAPACITY_HOST` | empty | the host "What to buy" plans in, such as `cores=64,mem=1024` (memory in GB); empty: each cluster's largest |
 | `CAPACITY_DISK_TBW` | empty | each drive model's rated terabytes written, such as `CT1000P310SSD8=220; Samsung SSD 990 PRO 1TB=600`, for disk wear |
 | `CAPACITY_HA` | empty | hosts kept spare per cluster, such as `Prod=1,lab=0`: usable capacity is then the cluster less its largest hosts |
@@ -711,9 +769,10 @@ it always wins, and the box on Settings is locked.
 | Name | Default | Meaning |
 |---|---|---|
 | `COLLIMO_ROLE` | `standalone` | `collector` at each site, `hub` for the one that shows them all. `standalone` is one site on its own |
-| `HUB_URL` | empty | on a hub: the address collectors reach it at. It goes into every enrolment code |
-| `HUB_ENROL` | empty | on a collector: the enrolment code made on the hub, used once |
+| `HUB_URL` | empty | on a hub: the address collectors reach it at. It goes into every enrollment code |
+| `HUB_ENROLL` | empty | on a collector: the enrollment code made on the hub, used once |
 | `HUB_LINK` | `normal` | `metered` on a cellular or satellite link: the snapshot every 5 minutes instead of every minute |
+| `HUB_PROXY` | empty | on a collector: an HTTP proxy for its link to the hub alone. `http://tailscale:1055` with the Tailscale sidecar |
 
 A **collector** watches its site as a standalone install does, and sends
 what it sees to the hub. It only ever calls out to the hub; nothing
@@ -725,12 +784,30 @@ unreachable wait on the archive volume and go when it is back.
 The **hub** polls nothing. It shows every site, sends the notifications
 for all of them, and keeps each site's archive. It needs an MSP license, or a
 Business license for several offices, which covers the number of sites the key says. On the hub, **Sites → Add a
-site** makes a one-time enrolment code for each new site: paste it into
-that site's `HUB_ENROL`. A code works once and lasts a day. Every message
+site** makes a one-time enrollment code for each new site: paste it into
+that site's `HUB_ENROLL`. A code works once and lasts a day. Every message
 between a collector and the hub is encrypted to the receiver and signed by
 the sender, whatever the route. On a hub, set `RETENTION=400d` to keep
 about 13 months of each site's graphs. The full guide is
 [The hub](https://docs.collimo.dev/msp/hub/).
+
+### Tailscale
+
+Add `tailscale` to `COMPOSE_PROFILES` and the stack runs a Tailscale sidecar
+that puts Collimo on your tailnet, with no port open on the router:
+
+| Name | Default | Meaning |
+|---|---|---|
+| `TS_AUTHKEY` | empty | an auth key from Tailscale's admin console (**Settings → Keys**). Tag it, so the device never expires. Used once, at the first start |
+| `TS_HOSTNAME` | `collimo` | this stack's name on the tailnet |
+
+The dashboard is then at `https://<TS_HOSTNAME>.<your tailnet>.ts.net` once
+HTTPS certificates are on for the tailnet (Tailscale admin → **DNS**), or at
+`http://<TS_HOSTNAME>` without them. On a hub, that address is `HUB_URL`. On
+a collector, set `HUB_PROXY=http://tailscale:1055` too, so its link reaches
+the hub over the tailnet; nothing else Collimo talks to goes through it. The
+sidecar runs in userspace: no tun device and no added capabilities. Its
+login is kept in the `tailscale-state` volume.
 
 ### Sign-in
 
