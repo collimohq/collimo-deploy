@@ -25,7 +25,7 @@ services:
     # host.
     # Each release writes its own version and registry in as the defaults,
     # so a blank stack runs it.
-    image: ${COLLIMO_IMAGE:-ghcr.io/collimohq/collimo}:${COLLIMO_VERSION:-0.2.0}
+    image: ${COLLIMO_IMAGE:-ghcr.io/collimohq/collimo}:${COLLIMO_VERSION:-0.3.0}
     # Ask the registry on every deploy. A fixed release costs one quick
     # request; qa moves, and this is how a redeploy picks it up.
     pull_policy: always
@@ -111,6 +111,13 @@ services:
       # entries separated by ; such as
       #   CHECKS=ping 192.168.1.20 name=printer; http https://nas.lab:5001 name=nas
       CHECKS: ${CHECKS:-}
+
+      # The Renewals tab watches every https source, https up-check and
+      # console's certificate already; CERT_WATCH adds host[:port] entries,
+      # commas between. DOMAINS_WATCH looks domains up over RDAP once a day,
+      # which sends each name to its registry: empty, none.
+      CERT_WATCH: ${CERT_WATCH:-}
+      DOMAINS_WATCH: ${DOMAINS_WATCH:-}
 
       # The Tools tab's port scan reaches private addresses only; this can
       # narrow it to some of them, such as 192.168.1.0/24.
@@ -229,6 +236,9 @@ services:
       CAPACITY_THRESHOLDS: ${CAPACITY_THRESHOLDS:-cpu=80,mem=80,disk=85,pool=85}
       CAPACITY_RUNWAY: ${CAPACITY_RUNWAY:-warn=90,bad=30}
       CAPACITY_RATIOS: ${CAPACITY_RATIOS:-vcpu=4,vmem=1,disk=1.5}
+      # Allocation forecasts that alert (alloc_cpu, alloc_mem, alloc_disk);
+      # empty, they are planning only and what is in use alerts.
+      CAPACITY_ALLOC_ALERTS: ${CAPACITY_ALLOC_ALERTS:-}
       CAPACITY_VM_SIZE: ${CAPACITY_VM_SIZE:-vcpu=4,mem=16,disk=100}
       CAPACITY_HA: ${CAPACITY_HA:-}
       # The monthly capacity summary: who gets it, whose name is on it, and
@@ -239,6 +249,9 @@ services:
       CAPACITY_HOST: ${CAPACITY_HOST:-}
       # Rated endurance per drive model, for disk wear: CT1000P310SSD8=220
       CAPACITY_DISK_TBW: ${CAPACITY_DISK_TBW:-}
+      # Each WAN's download/upload in Mb/s, for network capacity:
+      # WAN=1000/40. Empty: its best speedtest of the last 30 days.
+      CAPACITY_WAN: ${CAPACITY_WAN:-}
       # A copy of every inventory in PostgreSQL, for Grafana and Power BI
       # (paid). For the stack's own, add "postgres" to COMPOSE_PROFILES and
       # set INVENTORY_DB_PASSWORD; for one you run, set INVENTORY_DB_URL. The

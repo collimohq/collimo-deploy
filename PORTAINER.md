@@ -131,6 +131,8 @@ Add these only if you need them:
 | `UNIFI_SITE` | `default` | you renamed your site |
 | `COVERAGE_SKIP_TAG` | `nobackup` | a Proxmox VE or XCP-ng tag that leaves a VM out of the last-backup check |
 | `COVERAGE_SKIP` | empty | VMs left out of the last-backup check by name, separated by commas; `*` matches any run of characters |
+| `CERT_WATCH` | empty | more certificates for the Renewals tab, as `host` or `host:port` (443 unless given), separated by commas. Every https source, https up-check and UniFi console is watched already |
+| `DOMAINS_WATCH` | empty | domains whose registration end goes on the Renewals tab, separated by commas. Looked up once a day over RDAP, which sends each name to its registry's server |
 | `PORT_SLEEPS` | empty | switch ports whose computer sleeps, as `mac/port` separated by commas: a drop to 100 Mb/s or lower there is expected. The slow-link alert's button writes it |
 | `TOOLS_SCAN_NETWORKS` | empty | narrows where the Tools tab's port scan may go, such as `192.168.1.0/24, 10.20.0.0/16`. Empty, any private address (10/8, 172.16/12, 192.168/16); a network outside those is left out, never added |
 | `UNIFI_OS` | `true` | `false` for a self-hosted standalone controller |
@@ -481,7 +483,10 @@ Each UPS is a panel on the **Power and servers** tab. Alerts: on battery
 (`ups_on_battery`) and battery low or depleted (`ups_battery_low`) are bad;
 battery needs replacing (`ups_battery_replace`, from the UPS's own alarm)
 and 90% load or more (`ups_overload`) are warnings; ten minutes of runtime
-or less is a warning and five or less is bad (`ups_runtime_low`). APC,
+or less is a warning and five or less is bad (`ups_runtime_low`). On a paid
+edition, a battery whose runtime at its load has fallen to 75% of its first
+month's, is forecast under ten minutes within 90 days, or is dated over four
+years old warns (`ups_battery_aging`). APC,
 Raritan and Eaton PDUs are read too, and sit on the same tab.
 
 #### Servers, over Redfish
@@ -514,6 +519,29 @@ redundancy lost (`server_psu`), a drive not OK or predicting failure
 (`server_drive`); a BMC that stops answering is `source_down`. The classic
 Thermal and Power resources are read; a BMC offering only ThermalSubsystem
 and PowerSubsystem says so on its panel.
+
+#### Machines without a BMC, over Intel AMT
+
+Kind `amt` reads a machine with no BMC through Intel AMT (vPro mini PCs and
+workstations, such as the Minisforum MS-01), over WS-Management on 16993
+(TLS) or 16992: the BIOS version, the chassis's and baseboard's maker, model
+and serial, processors, memory modules, and AMT's own host name. Only
+Enumerate and Pull are sent. It signs in with HTTP Digest; the account needs
+network access and only the Hardware Asset and General Info realms. One slot
+lists every machine sharing an account; `user=` is required, and `host=`
+names the host each address is, in order, where AMT's host name isn't the
+host's. The slot is read every 5 minutes unless it says `every=`:
+
+```
+SOURCE_7=amt https://10.0.0.98,https://10.0.0.99 name=minis user=collimo host=pve-01,pve-02
+SOURCE_7_SECRET=<the AMT account's password>
+```
+
+Each machine is a panel on the **Power and servers** tab, and its BIOS feeds
+cluster consistency, matched by serial and then by name; a placeholder
+serial such as `Default string` is no serial. AMT's HostOSFQDN is never
+read: only Windows' LMS keeps it current. AMT not answering is
+`source_down`.
 
 ### Inventory reports
 
@@ -601,12 +629,17 @@ capacity), kept for two years in `capacity/` beside the archive, whatever the
 edition. On first start the inventory runs already held seed the disk and
 allocation history. The **Capacity** tab forecasts when each reaches its
 threshold, with a range, and raises `capacity_runway` when that is close.
+Its **Network** section does the same for uplinks between switches and each
+WAN, at their daily 95th percentile against their speed (a WAN's:
+`CAPACITY_WAN`, else its best speedtest), and for switches' PoE budgets;
+`link_saturation` and `poe_budget` are warnings.
 
 | Variable | Default | |
 |---|---|---|
 | `CAPACITY_THRESHOLDS` | `cpu=80,mem=80,disk=85,pool=85` | the share of usable capacity, in %, forecasts are for; also `alloc_cpu`, `alloc_mem` and `alloc_disk` against the ratios below (100 by default). `pool` is Ceph and other replicated storage, planned to nearfull |
 | `CAPACITY_RUNWAY` | `warn=90,bad=30` | days left at which a forecast warns, and is critical |
 | `CAPACITY_RATIOS` | `vcpu=4,vmem=1,disk=1.5` | allocation limits: vCPUs per core, VM memory per byte of host memory, provisioned disk per byte |
+| `CAPACITY_ALLOC_ALERTS` | empty | the allocation forecasts that raise runway alerts: `alloc_cpu`, `alloc_mem`, `alloc_disk`. Empty, they are planning only and memory and CPU in use alert |
 | `CAPACITY_VM_SIZE` | `vcpu=4,mem=16,disk=100` | the VM "how many more fit" counts in, memory and disk in GB |
 | `CAPACITY_SUMMARY_TO` | empty | who gets the monthly capacity summary on the 1st, through the SMTP server alert email uses; its own list, not `SMTP_TO` |
 | `CAPACITY_SUMMARY_BY` | empty | a "Prepared by" name on the summary |
@@ -614,6 +647,7 @@ threshold, with a range, and raises `capacity_runway` when that is close.
 | `CAPACITY_HOST` | empty | the host "What to buy" plans in, such as `cores=64,mem=1024` (memory in GB); empty: each cluster's largest |
 | `CAPACITY_DISK_TBW` | empty | each drive model's rated terabytes written, such as `CT1000P310SSD8=220; Samsung SSD 990 PRO 1TB=600`, for disk wear |
 | `CAPACITY_HA` | empty | hosts kept spare per cluster, such as `Prod=1,lab=0`: usable capacity is then the cluster less its largest hosts |
+| `CAPACITY_WAN` | empty | each WAN's download/upload in Mb/s by its network group, such as `WAN=1000/40,WAN2=300/30`, for network capacity. Empty: its best speedtest of the last 30 days; with neither, the WAN is shown and not judged |
 
 What Proxmox VE cannot tell a read-only token is left out rather than asked
 for: a VM's IP addresses, partitions and guest OS need the QEMU guest agent
