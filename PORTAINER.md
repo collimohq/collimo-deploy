@@ -33,9 +33,12 @@ admin account will not authenticate against it.
 
 1. Sign in to that console's UniFi OS interface directly by IP, not the
    mobile app and not the cloud portal.
-2. **Settings → Control Plane → Integrations → Create API Key**. Name it
-   `telemetry` and copy the key — UniFi shows it exactly once.
-3. **Settings → Admins & Users → Add New Admin**.
+2. **Integrations** in the left menu (older releases: **Settings → Control
+   Plane → Integrations**) → **Create API Key**. Name it `telemetry` and copy
+   the key — UniFi shows it exactly once.
+3. **People**, the last item in the left menu (older releases: **Settings →
+   Admins & Users**) → add a new admin. The first visit may ask to turn on
+   Identity.
 4. Choose **Restrict to Local Access Only**, set a username and password, and
    give it the **Read Only** role.
 5. Leave MFA **off** for this account. Cookie login cannot satisfy a second
@@ -123,7 +126,7 @@ Add these only if you need them:
 | `COLLIMO_IMAGE` | `ghcr.io/collimohq/collimo` | where the image is published; change it only if told to |
 | `WEB_PORT` | `8090` | something else already has 8090 |
 | `UNIFI_ENABLED` | `true` | `false` to watch only hypervisors and storage, or to try this stack beside an existing one without polling the controller twice |
-| `SOURCE_1` … `SOURCE_8` | empty | a hypervisor or storage system per slot, or a list of SNMP switches, UPSes or Redfish servers, see below |
+| `SOURCE_1` … `SOURCE_32` | empty | a hypervisor or storage system per slot, or a list of SNMP switches, UPSes or Redfish servers, see below |
 | `SOURCE_n_SECRET` | empty | the matching token, password, key, BMC password or SNMP community |
 | `CHECKS` | empty | up-checks for anything with an address: `ping <host>`, `http <URL>` or `tcp <host:port>`, separated by `;`, each with optional `name=`, `every=` and `timeout=`. See below |
 | `POLL_INTERVAL` | `30s` | values below `10s` are clamped |
@@ -153,7 +156,7 @@ Add these only if you need them:
 
 ### Hypervisors and storage
 
-Each system goes in a slot, `SOURCE_1` to `SOURCE_8`, as one line: the kind,
+Each system goes in a slot, `SOURCE_1` to `SOURCE_32`, as one line: the kind,
 its address, then optional `name=`, `user=`, `every=` and `tls=verify`. The
 credential goes in the matching `_SECRET` variable, so it never appears in the
 line the Settings page shows:
@@ -163,10 +166,27 @@ SOURCE_1=proxmox https://pve1.lab:8006 name=pve-lab user=telemetry@pve!ro
 SOURCE_1_SECRET=<API token secret>
 ```
 
-Kinds: `proxmox`, `pbs`, `vmware`, `xcpng`, `synology`, `qnap`, `truenas`, and
-`snmp` for switches, `ups` for UPSes and `redfish` for servers through
-their BMC, which take several addresses in one slot (see below). The dashboard's **Settings → Add a source** generates both
-lines and says what read-only account to create on that system.
+The dashboard's **Settings → Add a source** generates both lines and says
+what read-only account to create on that system.
+
+#### What one slot holds
+
+A slot is one login, not one box. Some kinds take several addresses in one
+slot, separated by commas with no spaces, when they share that login:
+
+| Kind | One slot holds |
+|---|---|
+| `proxmox` | One cluster. List its nodes with commas, so Collimo keeps watching while one reboots. Each cluster needs its own slot. |
+| `snmp` | Every switch on the same SNMP community or SNMPv3 user. |
+| `ups` | Every UPS network card on the same SNMP community or SNMPv3 user. |
+| `pdu` | Every PDU on the same SNMP community or SNMPv3 user. |
+| `nut` | Every NUT server. Each one's UPSes are all read. |
+| `redfish` | Every BMC with the same account. |
+| `amt` | Every Intel AMT machine with the same account. |
+| `pbs`, `vmware`, `xcpng`, `veeam`, `hycu`, `synology`, `qnap`, `truenas`, `phpipam`, `netbox` | One system. A second one takes a second slot, even with the same user. |
+
+A comma list takes up to 64 addresses.
+
 
 Fixed slot names are deliberate: Portainer passes a variable into the
 container only when `docker-compose.yml` names it, so a free-form name would
@@ -1235,7 +1255,7 @@ For development, or to try a branch before it is released, add
 paths**. It builds Collimo from the repository on the Docker host, tagged
 `collimo-local:latest` so a build never stands in for a pulled release, and
 rebuilds on every redeploy. `COLLIMO_VERSION` is still required; any value,
-such as `dev`, will do. The host then needs to pull `golang:1.24-alpine`
+such as `dev`, will do. The host then needs to pull `golang:1.27-alpine`
 too.
 
 ---

@@ -25,7 +25,7 @@ services:
     # host.
     # Each release writes its own version and registry in as the defaults,
     # so a blank stack runs it.
-    image: ${COLLIMO_IMAGE:-ghcr.io/collimohq/collimo}:${COLLIMO_VERSION:-0.3.1}
+    image: ${COLLIMO_IMAGE:-ghcr.io/collimohq/collimo}:${COLLIMO_VERSION:-0.3.2}
     # Ask the registry on every deploy. A fixed release costs one quick
     # request; qa moves, and this is how a redeploy picks it up.
     pull_policy: always
@@ -102,6 +102,54 @@ services:
       SOURCE_7_SECRET: ${SOURCE_7_SECRET:-}
       SOURCE_8: ${SOURCE_8:-}
       SOURCE_8_SECRET: ${SOURCE_8_SECRET:-}
+      SOURCE_9: ${SOURCE_9:-}
+      SOURCE_9_SECRET: ${SOURCE_9_SECRET:-}
+      SOURCE_10: ${SOURCE_10:-}
+      SOURCE_10_SECRET: ${SOURCE_10_SECRET:-}
+      SOURCE_11: ${SOURCE_11:-}
+      SOURCE_11_SECRET: ${SOURCE_11_SECRET:-}
+      SOURCE_12: ${SOURCE_12:-}
+      SOURCE_12_SECRET: ${SOURCE_12_SECRET:-}
+      SOURCE_13: ${SOURCE_13:-}
+      SOURCE_13_SECRET: ${SOURCE_13_SECRET:-}
+      SOURCE_14: ${SOURCE_14:-}
+      SOURCE_14_SECRET: ${SOURCE_14_SECRET:-}
+      SOURCE_15: ${SOURCE_15:-}
+      SOURCE_15_SECRET: ${SOURCE_15_SECRET:-}
+      SOURCE_16: ${SOURCE_16:-}
+      SOURCE_16_SECRET: ${SOURCE_16_SECRET:-}
+      SOURCE_17: ${SOURCE_17:-}
+      SOURCE_17_SECRET: ${SOURCE_17_SECRET:-}
+      SOURCE_18: ${SOURCE_18:-}
+      SOURCE_18_SECRET: ${SOURCE_18_SECRET:-}
+      SOURCE_19: ${SOURCE_19:-}
+      SOURCE_19_SECRET: ${SOURCE_19_SECRET:-}
+      SOURCE_20: ${SOURCE_20:-}
+      SOURCE_20_SECRET: ${SOURCE_20_SECRET:-}
+      SOURCE_21: ${SOURCE_21:-}
+      SOURCE_21_SECRET: ${SOURCE_21_SECRET:-}
+      SOURCE_22: ${SOURCE_22:-}
+      SOURCE_22_SECRET: ${SOURCE_22_SECRET:-}
+      SOURCE_23: ${SOURCE_23:-}
+      SOURCE_23_SECRET: ${SOURCE_23_SECRET:-}
+      SOURCE_24: ${SOURCE_24:-}
+      SOURCE_24_SECRET: ${SOURCE_24_SECRET:-}
+      SOURCE_25: ${SOURCE_25:-}
+      SOURCE_25_SECRET: ${SOURCE_25_SECRET:-}
+      SOURCE_26: ${SOURCE_26:-}
+      SOURCE_26_SECRET: ${SOURCE_26_SECRET:-}
+      SOURCE_27: ${SOURCE_27:-}
+      SOURCE_27_SECRET: ${SOURCE_27_SECRET:-}
+      SOURCE_28: ${SOURCE_28:-}
+      SOURCE_28_SECRET: ${SOURCE_28_SECRET:-}
+      SOURCE_29: ${SOURCE_29:-}
+      SOURCE_29_SECRET: ${SOURCE_29_SECRET:-}
+      SOURCE_30: ${SOURCE_30:-}
+      SOURCE_30_SECRET: ${SOURCE_30_SECRET:-}
+      SOURCE_31: ${SOURCE_31:-}
+      SOURCE_31_SECRET: ${SOURCE_31_SECRET:-}
+      SOURCE_32: ${SOURCE_32:-}
+      SOURCE_32_SECRET: ${SOURCE_32_SECRET:-}
       # The last-backup check leaves out VMs with this Proxmox VE or XCP-ng
       # tag, and VMs named in COVERAGE_SKIP (commas; * matches any run).
       COVERAGE_SKIP_TAG: ${COVERAGE_SKIP_TAG:-nobackup}
@@ -345,7 +393,10 @@ services:
     # Pinned, like Collimo itself, so a redeploy never pulls a release we
     # haven't run. It moves forward with a Collimo release, never back:
     # VictoriaMetrics supports upgrading its data, not downgrading it.
-    image: victoriametrics/victoria-metrics:v1.155.0
+    # The -scratch tag is the same binary with no OS beneath it, so the
+    # security scan finds no base-image packages (ADR-0078). It has no
+    # shell, so docker exec into it does not work.
+    image: victoriametrics/victoria-metrics:v1.156.0-scratch
     container_name: collimo-victoria-metrics
     restart: unless-stopped
     command:
